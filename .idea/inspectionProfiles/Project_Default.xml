@@ -1,0 +1,315 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="5c9c63f3-e513-33ba-8ff1-5dbc5192a841" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="NestingDepth" enabled="false" level="WARNING" enabled_by_default="false">
+      <option name="m_limit" value="1" />
+    </inspection_tool>
+    <inspection_tool class="NewMethodNamingConvention" enabled="true" level="WARNING" enabled_by_default="true">
+      <extension name="InstanceMethodNamingConvention" enabled="true">
+        <option name="m_regex" value="[a-z][a-z\d]*([A-Z]*[a-z\d]*){0,4}" />
+        <option name="m_minLength" value="4" />
+        <option name="m_maxLength" value="32" />
+      </extension>
+      <extension name="JUnit3MethodNamingConvention" enabled="true">
+        <option name="m_regex" value="[a-z][a-z\d]*([A-Z][a-z\d]*){0,2}" />
+        <option name="m_minLength" value="8" />
+        <option name="m_maxLength" value="64" />
+      </extension>
+      <extension name="JUnit4MethodNamingConvention" enabled="true">
+        <option name="m_regex" value="[a-z][a-z\d]*([A-Z][a-z\d]*){0,2}" />
+        <option name="m_minLength" value="4" />
+        <option name="m_maxLength" value="64" />
+      </extension>
+      <extension name="NativeMethodNamingConvention" enabled="true">
+        <option name="m_regex" value="[a-z][a-z\d]*([A-Z][a-z\d]*){0,2}" />
+        <option name="m_minLength" value="4" />
+        <option name="m_maxLength" value="32" />
+      </extension>
+      <extension name="StaticMethodNamingConvention" enabled="true">
+        <option name="m_regex" value="[a-z][a-z\d]*([A-Z][a-z\d]*){0,2}" />
+        <option name="m_minLength" value="4" />
+        <option name="m_maxLength" value="32" />
+      </extension>
+      <extension name="TestNGMethodNamingConvention" enabled="true">
+        <option name="m_regex" value="[a-z][a-z\d]*([A-Z][a-z\d]*){0,2}" />
+        <option name="m_minLength" value="4" />
+        <option name="m_maxLength" value="64" />
+      </extension>
+    </inspection_tool>
+    <inspection_tool class="NonCommentSourceStatements" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="m_limit" value="25" />
+    </inspection_tool>
+    <inspection_tool class="ParametersPerConstructor" enabled="false" level="WARNING" enabled_by_default="false">
+      <option name="m_limit" value="1" />
+    </inspection_tool>
+    <inspection_tool class="ParametersPerMethod" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="m_limit" value="3" />
+    </inspection_tool>
+    <inspection_tool class="SSBasedInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <searchConfiguration name="Incorrect location" uuid="260cfc7d-3624-39a8-95c9-ab7e3831b598" problemDescriptor="final field must stay in first part in class" text="$MethodType$ $Method$($ParameterType$ $Parameter$) {&#10;    $Parameter$;&#10;    final $FieldType$ $Field$ = $Init$;&#10;}" recursive="true" caseInsensitive="true" type="JAVA" pattern_context="member">
+        <constraint name="__context__" within="" contains="" />
+        <constraint name="MethodType" minCount="0" within="" contains="" />
+        <constraint name="Parameter" minCount="0" maxCount="2147483647" within="" contains="" />
+        <constraint name="Init" minCount="0" within="" contains="" />
+        <constraint name="Method" within="" contains="" />
+        <constraint name="ParameterType" minCount="0" within="" contains="" />
+        <constraint name="FieldType" minCount="0" within="" contains="" />
+        <constraint name="Field" target="true" within="" contains="" />
+      </searchConfiguration>
+      <searchConfiguration name="the passed parameters must be marked with the @Nonnull or @Nullable annotation" text="$MethodType$ $Method$(@$Annotation1$ $ParameterType1$ $Parameter1$, @$Annotation2$ $ParameterType2$ $Parameter2$);" recursive="true" caseInsensitive="true" type="JAVA" pattern_context="member">
+        <constraint name="__context__" within="" contains="" />
+        <constraint name="MethodType" negateName="true" within="" contains="" />
+        <constraint name="Method" target="true" within="" contains="" />
+        <constraint name="Parameter1" within="" contains="" />
+        <constraint name="ParameterType1" within="" contains="" />
+        <constraint name="ParameterType2" within="" contains="" />
+        <constraint name="Parameter2" within="" contains="" />
+        <constraint name="Annotation1" minCount="0" maxCount="0" within="" contains="" />
+        <constraint name="Annotation2" minCount="0" maxCount="0" within="" contains="" />
+      </searchConfiguration>
+      <searchConfiguration name="the passed parameters must be marked with the @Nonnull or @Nullable annotation" text="$MethodType$ $Method$(@$Annotation1$ $ParameterType1$ $Parameter1$,@$Annotation2$ $ParameterType2$ $Parameter2$,@$Annotation3$ $ParameterType3$ $Parameter3$);" recursive="true" caseInsensitive="true" type="JAVA" pattern_context="member">
+        <constraint name="__context__" within="" contains="" />
+        <constraint name="MethodType" negateName="true" within="" contains="" />
+        <constraint name="Method" target="true" within="" contains="" />
+        <constraint name="Parameter1" within="" contains="" />
+        <constraint name="ParameterType1" within="" contains="" />
+        <constraint name="Annotation1" minCount="0" maxCount="0" within="" contains="" />
+        <constraint name="Annotation2" minCount="0" maxCount="0" within="" contains="" />
+        <constraint name="ParameterType2" within="" contains="" />
+        <constraint name="Parameter2" within="" contains="" />
+        <constraint name="Annotation3" minCount="0" maxCount="0" within="" contains="" />
+        <constraint name="ParameterType3" within="" contains="" />
+        <constraint name="Parameter3" within="" contains="" />
+      </searchConfiguration>
+      <searchConfiguration name="the passed parameters must be marked with the @Nonnull or @Nullable annotation" text="$MethodType$ $Method$(@$Annotation1$ $ParameterType1$ $Parameter1$);" recursive="true" caseInsensitive="true" type="JAVA" pattern_context="member">
+        <constraint name="__context__" within="" contains="" />
+        <constraint name="MethodType" negateName="true" within="" contains="" />
+        <constraint name="Method" target="true" within="" contains="" />
+        <constraint name="Parameter1" within="" contains="" />
+        <constraint name="ParameterType1" within="" contains="" />
+        <constraint name="Annotation1" minCount="0" maxCount="0" within="" contains="" />
+      </searchConfiguration>
+      <searchConfiguration name="the passed parameters must be marked with the @Nonnull or @Nullable annotation" text="$MethodType$ $Method$(@$Annotation1$ $ParameterType1$ $Parameter1$, @$Annotation2$ $ParameterType2$ $Parameter2$);" recursive="true" caseInsensitive="true" type="JAVA" pattern_context="member">
+        <constraint name="__context__" within="" contains="" />
+        <constraint name="MethodType" negateName="true" within="" contains="" />
+        <constraint name="Method" target="true" within="" contains="" />
+        <constraint name="Parameter1" within="" contains="" />
+        <constraint name="ParameterType1" within="" contains="" />
+        <constraint name="ParameterType2" within="" contains="" />
+        <constraint name="Parameter2" within="" contains="" />
+        <constraint name="Annotation1" within="" contains="" />
+        <constraint name="Annotation2" minCount="0" maxCount="0" within="" contains="" />
+      </searchConfiguration>
+      <searchConfiguration name="the passed parameters must be marked with the @Nonnull or @Nullable annotation" text="$MethodType$ $Method$(@$Annotation1$ $ParameterType1$ $Parameter1$, @$Annotation2$ $ParameterType2$ $Parameter2$);" recursive="true" caseInsensitive="true" type="JAVA" pattern_context="member">
+        <constraint name="__context__" within="" contains="" />
+        <constraint name="MethodType" negateName="true" within="" contains="" />
+        <constraint name="Method" target="true" within="" contains="" />
+        <constraint name="Parameter1" within="" contains="" />
+        <constraint name="ParameterType1" within="" contains="" />
+        <constraint name="ParameterType2" within="" contains="" />
+        <constraint name="Parameter2" within="" contains="" />
+        <constraint name="Annotation1" minCount="0" maxCount="0" within="" contains="" />
+        <constraint name="Annotation2" within="" contains="" />
+      </searchConfiguration>
+      <searchConfiguration name="the passed parameters must be marked with the @Nonnull or @Nullable annotation" text="$MethodType$ $Method$(@$Annotation1$ $ParameterType1$ $Parameter1$,@$Annotation2$ $ParameterType2$ $Parameter2$,@$Annotation3$ $ParameterType3$ $Parameter3$);" recursive="true" caseInsensitive="true" type="JAVA" pattern_context="member">
+        <constraint name="__context__" within="" contains="" />
+        <constraint name="MethodType" negateName="true" within="" contains="" />
+        <constraint name="Method" target="true" within="" contains="" />
+        <constraint name="Parameter1" within="" contains="" />
+        <constraint name="ParameterType1" within="" contains="" />
+        <constraint name="Annotation1" minCount="0" maxCount="0" within="" contains="" />
+        <constraint name="Annotation2" minCount="0" maxCount="0" within="" contains="" />
+        <constraint name="ParameterType2" within="" contains="" />
+        <constraint name="Parameter2" within="" contains="" />
+        <constraint name="Annotation3" within="" contains="" />
+        <constraint name="ParameterType3" within="" contains="" />
+        <constraint name="Parameter3" within="" contains="" />
+      </searchConfiguration>
+      <searchConfiguration name="the passed parameters must be marked with the @Nonnull or @Nullable annotation" text="$MethodType$ $Method$(@$Annotation1$ $ParameterType1$ $Parameter1$,@$Annotation2$ $ParameterType2$ $Parameter2$,@$Annotation3$ $ParameterType3$ $Parameter3$);" recursive="true" caseInsensitive="true" type="JAVA" pattern_context="member">
+        <constraint name="__context__" within="" contains="" />
+        <constraint name="MethodType" negateName="true" within="" contains="" />
+        <constraint name="Method" target="true" within="" contains="" />
+        <constraint name="Parameter1" within="" contains="" />
+        <constraint name="ParameterType1" within="" contains="" />
+        <constraint name="Annotation1" minCount="0" maxCount="0" within="" contains="" />
+        <constraint name="Annotation2" within="" contains="" />
+        <constraint name="ParameterType2" within="" contains="" />
+        <constraint name="Parameter2" within="" contains="" />
+        <constraint name="Annotation3" minCount="0" maxCount="0" within="" contains="" />
+        <constraint name="ParameterType3" within="" contains="" />
+        <constraint name="Parameter3" within="" contains="" />
+      </searchConfiguration>
+      <searchConfiguration name="the passed parameters must be marked with the @Nonnull or @Nullable annotation" text="$MethodType$ $Method$(@$Annotation1$ $ParameterType1$ $Parameter1$,@$Annotation2$ $ParameterType2$ $Parameter2$,@$Annotation3$ $ParameterType3$ $Parameter3$);" recursive="true" caseInsensitive="true" type="JAVA" pattern_context="member">
+        <constraint name="__context__" within="" contains="" />
+        <constraint name="MethodType" negateName="true" within="" contains="" />
+        <constraint name="Method" target="true" within="" contains="" />
+        <constraint name="Parameter1" within="" contains="" />
+        <constraint name="ParameterType1" within="" contains="" />
+        <constraint name="Annotation1" minCount="0" maxCount="0" within="" contains="" />
+        <constraint name="Annotation2" within="" contains="" />
+        <constraint name="ParameterType2" within="" contains="" />
+        <constraint name="Parameter2" within="" contains="" />
+        <constraint name="Annotation3" within="" contains="" />
+        <constraint name="ParameterType3" within="" contains="" />
+        <constraint name="Parameter3" within="" contains="" />
+      </searchConfiguration>
+      <searchConfiguration name="the passed parameters must be marked with the @Nonnull or @Nullable annotation" text="$MethodType$ $Method$(@$Annotation1$ $ParameterType1$ $Parameter1$,@$Annotation2$ $ParameterType2$ $Parameter2$,@$Annotation3$ $ParameterType3$ $Parameter3$);" recursive="true" caseInsensitive="true" type="JAVA" pattern_context="member">
+        <constraint name="__context__" within="" contains="" />
+        <constraint name="MethodType" negateName="true" within="" contains="" />
+        <constraint name="Method" target="true" within="" contains="" />
+        <constraint name="Parameter1" within="" contains="" />
+        <constraint name="ParameterType1" within="" contains="" />
+        <constraint name="Annotation1" within="" contains="" />
+        <constraint name="Annotation2" minCount="0" maxCount="0" within="" contains="" />
+        <constraint name="ParameterType2" within="" contains="" />
+        <constraint name="Parameter2" within="" contains="" />
+        <constraint name="Annotation3" within="" contains="" />
+        <constraint name="ParameterType3" within="" contains="" />
+        <constraint name="Parameter3" within="" contains="" />
+      </searchConfiguration>
+      <searchConfiguration name="the passed parameters must be marked with the @Nonnull or @Nullable annotation" text="$MethodType$ $Method$(@$Annotation1$ $ParameterType1$ $Parameter1$,@$Annotation2$ $ParameterType2$ $Parameter2$,@$Annotation3$ $ParameterType3$ $Parameter3$);" recursive="true" caseInsensitive="true" type="JAVA" pattern_context="member">
+        <constraint name="__context__" within="" contains="" />
+        <constraint name="MethodType" negateName="true" within="" contains="" />
+        <constraint name="Method" target="true" within="" contains="" />
+        <constraint name="Parameter1" within="" contains="" />
+        <constraint name="ParameterType1" within="" contains="" />
+        <constraint name="Annotation1" within="" contains="" />
+        <constraint name="Annotation2" minCount="0" maxCount="0" within="" contains="" />
+        <constraint name="ParameterType2" within="" contains="" />
+        <constraint name="Parameter2" within="" contains="" />
+        <constraint name="Annotation3" minCount="0" maxCount="0" within="" contains="" />
+        <constraint name="ParameterType3" within="" contains="" />
+        <constraint name="Parameter3" within="" contains="" />
+      </searchConfiguration>
+      <searchConfiguration name="the passed parameters must be marked with the @Nonnull or @Nullable annotation" text="$MethodType$ $Method$(@$Annotation1$ $ParameterType1$ $Parameter1$,@$Annotation2$ $ParameterType2$ $Parameter2$,@$Annotation3$ $ParameterType3$ $Parameter3$);" recursive="true" caseInsensitive="true" type="JAVA" pattern_context="member">
+        <constraint name="__context__" within="" contains="" />
+        <constraint name="MethodType" negateName="true" within="" contains="" />
+        <constraint name="Method" target="true" within="" contains="" />
+        <constraint name="Parameter1" within="" contains="" />
+        <constraint name="ParameterType1" within="" contains="" />
+        <constraint name="Annotation1" within="" contains="" />
+        <constraint name="Annotation2" within="" contains="" />
+        <constraint name="ParameterType2" within="" contains="" />
+        <constraint name="Parameter2" within="" contains="" />
+        <constraint name="Annotation3" minCount="0" maxCount="0" within="" contains="" />
+        <constraint name="ParameterType3" within="" contains="" />
+        <constraint name="Parameter3" within="" contains="" />
+      </searchConfiguration>
+      <replaceConfiguration name="there must be an annotation for the returned method @Nonnull or @Nullable" text="@$Annotation$&#10;$MethodType$ $Method$($ParameterType$ $Parameter$);" recursive="false" caseInsensitive="true" type="JAVA" pattern_context="member" reformatAccordingToStyle="false" shortenFQN="false" replacement="@Nullable&#10;@Nonnull&#10;$MethodType$ $Method$($ParameterType$ $Parameter$);">
+        <constraint name="__context__" within="" contains="" />
+        <constraint name="Annotation" minCount="0" maxCount="0" within="" contains="" />
+        <constraint name="MethodType" regexp="void" negateName="true" within="" contains="" />
+        <constraint name="Method" target="true" within="" contains="" />
+        <constraint name="ParameterType" within="" contains="" />
+        <constraint name="Parameter" minCount="0" maxCount="2147483647" within="" contains="" />
+      </replaceConfiguration>
+      <searchConfiguration name="To many fields in method" text="$MethodType$ $Method$($ParameterType$ $Parameter$) {&#10;    $Parameter$;&#10;    $FieldType1$ $Field1$ = $Init$;&#10;    $Parameter$;&#10;    $FieldType2$ $Field2$ = $Init$;&#10;    $Parameter$;&#10;    $FieldType3$ $Field3$ = $Init$;&#10;    $Parameter$;&#10;    $FieldType4$ $Field4$ = $Init$;&#10;    $Parameter$;&#10;}" recursive="true" caseInsensitive="true" type="JAVA" pattern_context="member">
+        <constraint name="__context__" within="" contains="" />
+        <constraint name="MethodType" minCount="0" within="" contains="" />
+        <constraint name="Parameter" minCount="0" maxCount="2147483647" within="" contains="" />
+        <constraint name="Init" minCount="0" within="" contains="" />
+        <constraint name="Method" within="" contains="" />
+        <constraint name="ParameterType" minCount="0" within="" contains="" />
+        <constraint name="Field1" within="" contains="" />
+        <constraint name="FieldType1" within="" contains="" />
+        <constraint name="FieldType2" within="" contains="" />
+        <constraint name="Field2" within="" contains="" />
+        <constraint name="FieldType3" within="" contains="" />
+        <constraint name="Field3" within="" contains="" />
+        <constraint name="FieldType4" within="" contains="" />
+        <constraint name="Field4" target="true" within="" contains="" />
+      </searchConfiguration>
+      <searchConfiguration name="To many fields in method" text="$MethodType$ $Method$($ParameterType$ $Parameter$) {&#10;    $Parameter$;&#10;    $FieldType1$  $Field1$, $Field2$,$Field3$,$Field4$ = $Init1$;&#10;    $Parameter$;&#10;&#10;}" recursive="true" caseInsensitive="true" type="JAVA" pattern_context="member">
+        <constraint name="__context__" within="" contains="" />
+        <constraint name="MethodType" minCount="0" within="" contains="" />
+        <constraint name="Parameter" minCount="0" maxCount="2147483647" within="" contains="" />
+        <constraint name="Method" within="" contains="" />
+        <constraint name="ParameterType" minCount="0" within="" contains="" />
+        <constraint name="Field1" within="" contains="" />
+        <constraint name="FieldType1" within="" contains="" />
+        <constraint name="Field2" within="" contains="" />
+        <constraint name="Init1" minCount="0" within="" contains="" />
+        <constraint name="Field3" within="" contains="" />
+        <constraint name="Field4" target="true" within="" contains="" />
+      </searchConfiguration>
+      <searchConfiguration name="To many fields in method" text="$MethodType$ $Method$($ParameterType$ $Parameter$) {&#10;    $Parameter$;&#10;    $FieldType1$  $Field1$, $Field2$,$Field3$ = $Init1$;&#10;    $Parameter$;&#10;    $FieldType2$  $Field4$ = $Init1$;&#10;    $Parameter$;&#10;}" recursive="true" caseInsensitive="true" type="JAVA" pattern_context="member">
+        <constraint name="__context__" within="" contains="" />
+        <constraint name="MethodType" minCount="0" within="" contains="" />
+        <constraint name="Parameter" minCount="0" maxCount="2147483647" within="" contains="" />
+        <constraint name="Method" within="" contains="" />
+        <constraint name="ParameterType" minCount="0" within="" contains="" />
+        <constraint name="Field1" within="" contains="" />
+        <constraint name="FieldType1" within="" contains="" />
+        <constraint name="Field2" within="" contains="" />
+        <constraint name="Init1" minCount="0" within="" contains="" />
+        <constraint name="Field3" within="" contains="" />
+        <constraint name="Field4" target="true" within="" contains="" />
+        <constraint name="FieldType2" within="" contains="" />
+      </searchConfiguration>
+      <searchConfiguration name="To many fields in method" text="$MethodType$ $Method$($ParameterType$ $Parameter$) {&#10;    $Parameter$;&#10;    $FieldType2$  $Field3$ = $Init2$;&#10;    $Parameter$;&#10;    $FieldType1$  $Field1$, $Field2$ = $Init1$;&#10;    $Parameter$;&#10;    $FieldType2$  $Field4$ = $Init3$;&#10;    $Parameter$;&#10;&#10;}" recursive="true" caseInsensitive="true" type="JAVA" pattern_context="member">
+        <constraint name="__context__" within="" contains="" />
+        <constraint name="MethodType" minCount="0" within="" contains="" />
+        <constraint name="Parameter" minCount="0" maxCount="2147483647" within="" contains="" />
+        <constraint name="Method" within="" contains="" />
+        <constraint name="ParameterType" minCount="0" within="" contains="" />
+        <constraint name="Field1" within="" contains="" />
+        <constraint name="FieldType1" within="" contains="" />
+        <constraint name="Field2" within="" contains="" />
+        <constraint name="Init1" minCount="0" within="" contains="" />
+        <constraint name="Field3" within="" contains="" />
+        <constraint name="Field4" target="true" within="" contains="" />
+        <constraint name="FieldType2" within="" contains="" />
+        <constraint name="Init2" minCount="0" within="" contains="" />
+        <constraint name="Init3" minCount="0" within="" contains="" />
+      </searchConfiguration>
+      <searchConfiguration name="To many fields in method" text="$MethodType$ $Method$($ParameterType$ $Parameter$) {&#10;    $Parameter$;&#10;    $FieldType1$  $Field1$, $Field2$ = $Init1$;&#10;    $Parameter$;&#10;    $FieldType2$  $Field4$ = $Init3$;&#10;    $Parameter$;&#10;    $FieldType2$  $Field3$ = $Init2$;&#10;    $Parameter$;&#10;&#10;}" recursive="true" caseInsensitive="true" type="JAVA" pattern_context="member">
+        <constraint name="__context__" within="" contains="" />
+        <constraint name="MethodType" minCount="0" within="" contains="" />
+        <constraint name="Parameter" minCount="0" maxCount="2147483647" within="" contains="" />
+        <constraint name="Method" within="" contains="" />
+        <constraint name="ParameterType" minCount="0" within="" contains="" />
+        <constraint name="Field1" within="" contains="" />
+        <constraint name="FieldType1" within="" contains="" />
+        <constraint name="Field2" within="" contains="" />
+        <constraint name="Init1" minCount="0" within="" contains="" />
+        <constraint name="Field3" within="" contains="" />
+        <constraint name="Field4" target="true" within="" contains="" />
+        <constraint name="FieldType2" within="" contains="" />
+        <constraint name="Init2" minCount="0" within="" contains="" />
+        <constraint name="Init3" minCount="0" within="" contains="" />
+      </searchConfiguration>
+      <searchConfiguration name="To many fields in method" text="$MethodType$ $Method$($ParameterType$ $Parameter$) {&#10;    $Parameter$;&#10;    $FieldType2$  $Field4$ = $Init3$;&#10;    $Parameter$;&#10;    $FieldType2$  $Field3$ = $Init2$;&#10;    $Parameter$;&#10;    $FieldType1$  $Field1$, $Field2$ = $Init1$;&#10;    $Parameter$;&#10;}" recursive="true" caseInsensitive="true" type="JAVA" pattern_context="member">
+        <constraint name="__context__" within="" contains="" />
+        <constraint name="MethodType" minCount="0" within="" contains="" />
+        <constraint name="Parameter" minCount="0" maxCount="2147483647" within="" contains="" />
+        <constraint name="Method" within="" contains="" />
+        <constraint name="ParameterType" minCount="0" within="" contains="" />
+        <constraint name="Field1" within="" contains="" />
+        <constraint name="FieldType1" within="" contains="" />
+        <constraint name="Field2" within="" contains="" />
+        <constraint name="Init1" minCount="0" within="" contains="" />
+        <constraint name="Field3" within="" contains="" />
+        <constraint name="Field4" target="true" within="" contains="" />
+        <constraint name="FieldType2" within="" contains="" />
+        <constraint name="Init2" minCount="0" within="" contains="" />
+        <constraint name="Init3" minCount="0" within="" contains="" />
+      </searchConfiguration>
+      <searchConfiguration name="To many fields in method" text="$MethodType$ $Method$($ParameterType$ $Parameter$) {&#10;    $Parameter$;&#10;    $FieldType2$  $Field4$ = $Init2$;&#10;    $Parameter$;&#10;    $FieldType1$  $Field1$, $Field2$,$Field3$ = $Init1$;&#10;    $Parameter$;&#10;}" recursive="true" caseInsensitive="true" type="JAVA" pattern_context="member">
+        <constraint name="__context__" within="" contains="" />
+        <constraint name="MethodType" minCount="0" within="" contains="" />
+        <constraint name="Parameter" minCount="0" maxCount="2147483647" within="" contains="" />
+        <constraint name="Method" within="" contains="" />
+        <constraint name="ParameterType" minCount="0" within="" contains="" />
+        <constraint name="Field1" within="" contains="" />
+        <constraint name="FieldType1" within="" contains="" />
+        <constraint name="Field2" within="" contains="" />
+        <constraint name="Init1" minCount="0" within="" contains="" />
+        <constraint name="Field3" within="" contains="" />
+        <constraint name="FieldType2" within="" contains="" />
+        <constraint name="Init2" minCount="0" within="" contains="" />
+        <constraint name="Field4" target="true" within="" contains="" />
+      </searchConfiguration>
+    </inspection_tool>
+  </profile>
+</component>

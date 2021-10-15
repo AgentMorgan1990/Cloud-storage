@@ -1,0 +1,11 @@
+com\geekbrains\AuthRequest.class
+com\geekbrains\Command.class
+com\geekbrains\CommandType.class
+com\geekbrains\PathUpRequest.class
+com\geekbrains\FileMessage.class
+com\geekbrains\PathResponse.class
+com\geekbrains\FileRequest.class
+com\geekbrains\ListRequest.class
+com\geekbrains\PathInRequest.class
+com\geekbrains\AuthResponse.class
+com\geekbrains\ListResponse.class

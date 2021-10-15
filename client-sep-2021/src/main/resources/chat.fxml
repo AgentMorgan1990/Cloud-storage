@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane prefHeight="680.0" prefWidth="639.0" xmlns="http://javafx.com/javafx/11.0.2" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Controller">
+   <AnchorPane fx:id="mainScene" layoutY="61.0" prefHeight="619.0" prefWidth="624.0" visible="false">
+          <ListView fx:id="fileClientView" layoutX="14.0" layoutY="45.0" prefHeight="402.0" prefWidth="301.0" />
+          <TextField fx:id="input" layoutX="232.0" layoutY="461.0" prefHeight="65.0" prefWidth="391.0" />
+         <Button fx:id="Button1" layoutX="14.0" layoutY="499.0" mnemonicParsing="false" onAction="#sendFile" prefHeight="25.0" prefWidth="192.0" text="Отправить файл на сервер &gt;&gt;&gt;" />
+         <Button fx:id="Button11" layoutX="14.0" layoutY="576.0" mnemonicParsing="false" onAction="#receiveArrayFiles" prefHeight="25.0" prefWidth="608.0" text="Обновить список файлов на сервере" />
+         <Button fx:id="Button111" layoutX="14.0" layoutY="539.0" mnemonicParsing="false" onAction="#updateArrayFiles" prefHeight="25.0" prefWidth="608.0" text="Обновить список файлов на клиенте" />
+         <Button fx:id="Button12" layoutX="14.0" layoutY="460.0" mnemonicParsing="false" onAction="#receiveFile" prefHeight="25.0" prefWidth="192.0" text="&lt;&lt;&lt; Получить файл с сервера " />
+         <TextField fx:id="currentDirectoryOnClient" layoutX="14.0" layoutY="14.0" prefHeight="25.0" prefWidth="252.0" />
+         <Button fx:id="clientPathUp" layoutX="263.0" layoutY="14.0" mnemonicParsing="false" onAction="#clientPathUp" prefHeight="25.0" prefWidth="52.0" text="Up" />
+         <Button fx:id="serverPathUp" layoutX="572.0" layoutY="14.0" mnemonicParsing="false" onAction="#serverPathUp" prefHeight="25.0" prefWidth="52.0" text="Up" />
+         <TextField fx:id="currentDirectoryOnServer" layoutX="336.0" layoutY="14.0" prefHeight="25.0" prefWidth="236.0" />
+         <ListView fx:id="fileServerView" layoutX="336.0" layoutY="45.0" prefHeight="402.0" prefWidth="287.0" />
+   </AnchorPane>
+   <TextField fx:id="loginField" layoutX="14.0" layoutY="14.0" prefHeight="25.0" prefWidth="236.0" text="Логин" />
+   <TextField fx:id="passwordField" layoutX="260.0" layoutY="14.0" prefHeight="25.0" prefWidth="236.0" text="Пароль" />
+   <Button fx:id="Authorization" layoutX="504.0" layoutY="14.0" mnemonicParsing="false" onAction="#sendLoginAndPassword" prefHeight="25.0" prefWidth="119.0" text="Авторизоваться" />
+</AnchorPane>
