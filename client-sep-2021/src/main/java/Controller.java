@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
+import javax.swing.filechooser.*;
+
 import com.geekbrains.*;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -24,7 +26,7 @@ public class Controller implements Initializable {
 
 //    private static Path currentDir = Paths.get("client-sep-2021", "root");
 //    private static Path currentDir = Paths.get("D:\\GB cloud storage\\Lesson_1\\cloud-storage-sep-2021\\client-sep-2021", "root");
-private static Path currentDir = Paths.get("/.");
+private static Path currentDir = Paths.get("/");
     public ListView<String> fileClientView;
     public ListView<String> fileServerView;
     public TextField input;
