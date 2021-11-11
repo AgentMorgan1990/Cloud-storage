@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
+import javax.swing.filechooser.*;
+
 import com.geekbrains.*;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -23,7 +25,8 @@ import lombok.extern.slf4j.Slf4j;
 public class Controller implements Initializable {
 
 //    private static Path currentDir = Paths.get("client-sep-2021", "root");
-    private static Path currentDir = Paths.get("D:\\GB cloud storage\\Lesson_1\\cloud-storage-sep-2021\\client-sep-2021", "root");
+//    private static Path currentDir = Paths.get("D:\\GB cloud storage\\Lesson_1\\cloud-storage-sep-2021\\client-sep-2021", "root");
+private static Path currentDir = Paths.get("/");
     public ListView<String> fileClientView;
     public ListView<String> fileServerView;
     public TextField input;
@@ -48,7 +51,7 @@ public class Controller implements Initializable {
     public void sendFile(ActionEvent actionEvent) throws IOException {
         String fileName = input.getText();
         input.clear();
-        Path file = Paths.get(String.valueOf(currentDir.resolve(fileName)));
+        Path file = currentDir.resolve(fileName);
         net.sendCommand(new FileMessage(file));
     }
 
@@ -90,7 +93,7 @@ public class Controller implements Initializable {
                     switch (cmd.getType()) {
                         case LIST_RESPONSE:
                             ListResponse listResponse = (ListResponse) cmd;
-                            Platform.runLater(() -> refreshServerView(listResponse.getList()));
+                            refreshServerView(listResponse.getList());
                             break;
                         case FILE_MESSAGE:
                             FileMessage fileMessage = (FileMessage) cmd;
@@ -98,13 +101,7 @@ public class Controller implements Initializable {
                                     currentDir.resolve(fileMessage.getName()),
                                     fileMessage.getBytes()
                             );
-                            Platform.runLater(() -> {
-                                try {
-                                    refreshClientView();
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
-                            });
+                            refreshClientView();
                             break;
                         case PATH_RESPONSE:
                             PathResponse pathResponse = (PathResponse) cmd;
@@ -144,29 +141,11 @@ public class Controller implements Initializable {
 
     public String returnName2(String str) {
         String[] words = str.split(" ");
-        String returnWay;
-        switch (words.length) {
-            case 2:
-                returnWay = words[1];
-                break;
-            case 3:
-                returnWay = words[1] + " " + words[2];
-                break;
-            case 4:
-                returnWay = words[1] + " " + words[2] + " " + words[3];
-                break;
-            default:
-                returnWay = words[1];
-                break;
-                //todo поменять на решение с циклом
-//        String returnWay = words[1];
-//        if (words.length > 2) {
-//            for (int i = 3; i < (words.length + 1); i++) {
-//                returnWay = returnWay + " " + words[i];
-//            }
-//            System.out.println(returnWay);
-//        }
-
+        String returnWay = words[1];
+        if (words.length > 2) {
+            for (int i = 2; i < words.length; i++) {
+                returnWay = returnWay + " " + words[i];
+            }
         }
         return returnWay;
     }
@@ -177,17 +156,26 @@ public class Controller implements Initializable {
     }
 
     public void refreshServerView(List<String> names) {
-        fileServerView.getItems().clear();
-        fileServerView.getItems().addAll(names);
+        Platform.runLater(() -> {
+            fileServerView.getItems().clear();
+            fileServerView.getItems().addAll(names);
+        });
     }
 
 
     private void refreshClientView() throws IOException {
-        fileClientView.getItems().clear();
-        List<String> names = Files.list(currentDir)
-                .map(this::resolveFileType)
-                .collect(Collectors.toList());
-        fileClientView.getItems().addAll(names);
+        Platform.runLater(() -> {
+            fileClientView.getItems().clear();
+            List<String> names = null;
+            try {
+                names = Files.list(currentDir)
+                        .map(this::resolveFileType)
+                        .collect(Collectors.toList());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            fileClientView.getItems().addAll(names);
+        });
     }
 
     public void addNavigationListener() {

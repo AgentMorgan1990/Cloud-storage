@@ -17,7 +17,7 @@ public class FileMessageHandler extends SimpleChannelInboundHandler<Command> {
 
     private static Path currentPath;
     private static Path clientPath;
-    DBAuthService service = new DBAuthService();
+    DBAuthService service = DBAuthService.getInstance();
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
@@ -84,7 +84,8 @@ public class FileMessageHandler extends SimpleChannelInboundHandler<Command> {
                 try {
                 if (service.findByLogin(login).equals(password)) {
                     authResponse.setAuthStatus(true);
-                    clientPath = Paths.get("D:\\GB cloud storage\\Lesson_1\\cloud-storage-sep-2021\\server-sep-2021", login);
+                    clientPath = Paths.get("./", login);
+//                    clientPath = Paths.get("D:\\GB cloud storage\\Lesson_1\\cloud-storage-sep-2021\\server-sep-2021", login);
                     if (!Files.exists(clientPath)) {
                         Files.createDirectory(clientPath);
                     }
