@@ -40,7 +40,7 @@ public class MainController implements Initializable {
     public void pressOnDownloadBtn(ActionEvent actionEvent) throws IOException {
 
             try {
-                protoFileSender.downFile(Paths.get("/home/sergei/IdeaProjects/Educational projects/Cloud-storage/server/123.txt"), Network.getInstance().getCurrentChannel(), future -> {
+                protoFileSender.downFile(Paths.get("/home/sergei/IdeaProjects/Educational projects/Cloud-storage/VideoTest.mkv"), Network.getInstance().getCurrentChannel(), future -> {
                     if (!future.isSuccess()) {
                         future.cause().printStackTrace();
                     }
