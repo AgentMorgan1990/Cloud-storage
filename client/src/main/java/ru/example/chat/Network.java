@@ -13,13 +13,20 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.CountDownLatch;
 
 public class Network {
-    private static Network ourInstance = new Network();
+
+    private static Network INSTANCE;
 
     public static Network getInstance() {
-        return ourInstance;
+        if (INSTANCE == null) {
+            INSTANCE = new Network();
+        }
+        return INSTANCE;
     }
 
+    private Callback callback;
+
     private Network() {
+
     }
 
     private Channel currentChannel;
@@ -28,7 +35,9 @@ public class Network {
         return currentChannel;
     }
 
-    public void start(CountDownLatch countDownLatch) {
+
+    public void start(CountDownLatch countDownLatch, Callback callback) {
+        this.callback = callback;
         EventLoopGroup group = new NioEventLoopGroup();
         try {
             Bootstrap clientBootstrap = new Bootstrap();
@@ -37,7 +46,7 @@ public class Network {
                     .remoteAddress(new InetSocketAddress("localhost", 9090))
                     .handler(new ChannelInitializer<SocketChannel>() {
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
-//                            socketChannel.pipeline().addLast();
+                            socketChannel.pipeline().addLast(new ProtocolInboundHandler(callback));
                             currentChannel = socketChannel;
                         }
                     });

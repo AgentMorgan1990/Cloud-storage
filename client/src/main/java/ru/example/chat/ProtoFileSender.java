@@ -24,12 +24,10 @@ public class ProtoFileSender {
         executorService = Executors.newSingleThreadExecutor();
     }
 
-    public void uploadFile(Channel channel, ChannelFutureListener finishListener) {
-
-        executorService.execute(() -> {
-
+    public void refreshRemoteFileList(Channel channel, ChannelFutureListener finishListener){
+        executorService.execute(()->{
             long packageSize = 0L;
-            byte[] commandName = Commands.UPLOAD_FILE.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] commandName = Commands.REFRESH_REMOTE_FILE_LIST.toString().getBytes(StandardCharsets.UTF_8);
 
             packageSize += 8;
             packageSize += 4;
@@ -42,6 +40,37 @@ public class ProtoFileSender {
             buf.writeLong(packageSize);
             buf.writeInt(commandName.length);
             buf.writeBytes(commandName);
+            ChannelFuture transferOperationFuture = channel.writeAndFlush(buf);
+
+            if (finishListener != null) {
+                transferOperationFuture.addListener(finishListener);
+            }
+        });
+    }
+
+    public void uploadFile(String fileName, Channel channel, ChannelFutureListener finishListener) {
+
+        executorService.execute(() -> {
+
+            long packageSize = 0L;
+            byte[] commandName = Commands.UPLOAD_FILE.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] fileNameArr = fileName.getBytes();
+
+            packageSize += 8;
+            packageSize += 4;
+            packageSize += commandName.length;
+            packageSize += 4;
+            packageSize += fileNameArr.length;
+
+            System.out.println(packageSize);
+
+            ByteBuf buf = null;
+            buf = ByteBufAllocator.DEFAULT.directBuffer(1);
+            buf.writeLong(packageSize);
+            buf.writeInt(commandName.length);
+            buf.writeBytes(commandName);
+            buf.writeInt(fileNameArr.length);
+            buf.writeBytes(fileNameArr);
             ChannelFuture transferOperationFuture = channel.writeAndFlush(buf);
 
 
@@ -88,7 +117,6 @@ public class ProtoFileSender {
 
             channel.writeAndFlush(buf);
 
-            //todo тут наверное надо порубить на куски файл
             ChannelFuture transferOperationFuture = channel.writeAndFlush(region);
 
             if (finishListener != null) {

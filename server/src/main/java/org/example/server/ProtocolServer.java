@@ -7,19 +7,14 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import org.example.handler.ProtocolHandler;
+import org.example.handler.ProtocolInboundHandler;
 
 
-
-
-//todo MVP1 - отправка и получение файлов в папку клинета и сервера
 //todo MVP1 - рефакторинг кода после получения этого функционала
+//todo Разобраться с реализацией callBack-ов и красивее передавать его, в контроллера какая-то каша
 
 //todo корректно переименовать загрузку выгрузку
 //todo подумать над корректныой реализаций стейтов
-//todo подумать над разделением и подсчётом посылок(поддержка передачи больших файлов)                  ++ DONE
-//todo доработать клиентскую часть по визуализации выгрузки-загрузки (два экрана и кнопки)
-//todo отображение файлов на серверном хранилище
 //todo зашить логик клиента в протокол - для авторизации
 //todo для авторизации на серваке создать отдельный хэндлер - например первый,
 // а протом можно прокидывать во второй уже с обработкой
@@ -42,7 +37,7 @@ public class ProtocolServer {
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(SocketChannel serverChannel) {
-                            serverChannel.pipeline().addLast(new ProtocolHandler());
+                            serverChannel.pipeline().addLast(new ProtocolInboundHandler());
                         }
                     });
             //todo magic number
