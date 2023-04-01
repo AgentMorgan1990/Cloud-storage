@@ -1,11 +1,11 @@
 package ru.example.chat;
-
-import java.io.IOException;
 import java.util.List;
 
+@FunctionalInterface
+public interface Callback {
 
-
-    public interface Callback {
-        void call(List<String> fileList) throws IOException, InterruptedException;
-    }
+    //todo можно пихнуть сюда абстрактный класс, которыя наполнять разными командами,
+    // а в зависимости от окмманд разное наполнение объекта
+    void call(List<String> fileList);
+}
 

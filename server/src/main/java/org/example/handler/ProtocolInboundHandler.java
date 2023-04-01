@@ -165,7 +165,7 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
                                     if (!Files.isDirectory(p)) {
                                         return p.getFileName().toString();
                                     } else {
-                                        return "[" + p.getFileName().toString() + "]";
+                                        return "[dir] " + p.getFileName().toString();
                                     }
                                 })
                                 .collect(Collectors.toList());
