@@ -1,8 +1,9 @@
 package org.example.handler;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.example.model.Commands;
 import org.example.server.SentService;
 
@@ -11,26 +12,38 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 
 public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
-   private enum State {IDLE, READ_PACKAGE_SIZE, READ_COMMAND, EXECUTE_COMMAND ,NAME_LENGTH, NAME, FILE_LENGTH, FILE, READ_SEND_FILE_NAME_LENGTH, READ_SEND_FILE_NAME, SEND_FILE, SENT_REMOTE_FILE_LIST}
+    private enum State {
+        IDLE,
+        READ_PACKAGE_SIZE,
+        READ_COMMAND,
+        EXECUTE_COMMAND,
+        READ_FILE_NAME_LENGTH,
+        READ_FILE_NAME,
+        READ_FILE_LENGTH,
+        READ_FILE,
+        READ_SEND_FILE_NAME_LENGTH,
+        READ_SEND_FILE_NAME,
+        GO_TO_PARENT_DIRECTORY,
+        READ_DIRECTORY_NAME_LENGTH,
+        READ_DIRECTORY_NAME
+    }
+
     private State currentState = State.IDLE;
-    private long packageSize;
-    private long redSize;
     private Commands command;
     private int nextLength;
     private long fileLength;
-    private String fileName;
+    private long redFileSize = 0L;
     private BufferedOutputStream out;
-
-    private ExecutorService executorService;
+    private final SentService sentService;
+    private Path rootDir = Paths.get("/home/sergei/IdeaProjects/Educational projects/Cloud-storage/server_storage/");
+    private Path currentDir = Paths.get("/");
+    private static final Logger log = LogManager.getLogger(ProtocolInboundHandler.class);
 
     public ProtocolInboundHandler() {
-        executorService = Executors.newSingleThreadExecutor();
+        currentDir = rootDir;
+        sentService = new SentService();
     }
 
 
@@ -39,225 +52,178 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
 
         ByteBuf buf = ((ByteBuf) msg);
         while (buf.readableBytes() > 0) {
-            System.out.println("Есть что читать");
 
-            if (currentState.equals(State.IDLE) && buf.readableBytes() >= 8) {
-                packageSize = buf.readLong();
-                System.out.println("State: " + State.READ_PACKAGE_SIZE + " packageSize: " + packageSize);
-                redSize += 8;
-                currentState = State.READ_PACKAGE_SIZE;
+            if (currentState.equals(State.IDLE) && buf.readableBytes() > 0) {
+                changeState(State.READ_PACKAGE_SIZE);
             }
 
-            if (currentState.equals(State.READ_PACKAGE_SIZE) && buf.readableBytes() >= 4) {
+            if (currentState.equals(State.READ_PACKAGE_SIZE) && buf.readableBytes() >= 8) {
+                long packageSize = buf.readLong();
+                log.info("State: " + currentState + " packageSize: " + packageSize);
+
+                changeState(State.READ_COMMAND);
+            }
+
+            if (currentState.equals(State.READ_COMMAND) && buf.readableBytes() >= 4) {
                 byte[] commandTitle = new byte[buf.readInt()];
-                redSize += 4 + commandTitle.length;
                 buf.readBytes(commandTitle);
                 command = Commands.valueOf(new String(commandTitle, StandardCharsets.UTF_8));
-                System.out.println("State: " + State.READ_COMMAND + " command: " + command);
-                currentState = State.READ_COMMAND;
+                log.info("State: " + currentState + " command: " + command);
+
+                changeState(State.EXECUTE_COMMAND);
             }
 
 
-            if (currentState.equals(State.READ_COMMAND)) {
+            if (currentState.equals(State.EXECUTE_COMMAND)) {
 
                 switch (command) {
-                    case DOWNLOAD_FILE:
-                        currentState = State.NAME_LENGTH;
+                    case SEND_FILE_TO_SERVER:
+                        changeState(State.READ_FILE_NAME_LENGTH);
                         break;
 
-                    case UPLOAD_FILE:
-                        currentState = State.READ_SEND_FILE_NAME_LENGTH;
-                        //todo перекинуть в хэндлер отправки файлов
+                    case SEND_FILE_FROM_SERVER:
+                        changeState(State.READ_SEND_FILE_NAME_LENGTH);
                         break;
-                    case REFRESH_REMOTE_FILE_LIST:
-                        currentState = State.SENT_REMOTE_FILE_LIST;
+
+                    case REFRESH_SERVER_FILE_AND_DIRECTORY_LIST:
+                        sentService.sendFileList(currentDir, ctx, future -> {
+                            if (!future.isSuccess()) {
+                                future.cause().printStackTrace();
+                            }
+                            if (future.isSuccess()) {
+                                changeState(State.IDLE);
+                            }
+                        });
+                        break;
+
+                    case GO_TO_SERVER_PARENT_DIRECTORY:
+                        changeState(State.GO_TO_PARENT_DIRECTORY);
+                        break;
+
+                    case GO_TO_SERVER_DIRECTORY:
+                        changeState(State.READ_DIRECTORY_NAME_LENGTH);
                         break;
                 }
+            }
+
+            if (currentState.equals(State.READ_DIRECTORY_NAME_LENGTH) && buf.readableBytes() >= 4) {
+                nextLength = buf.readInt();
+                log.info("State: " + currentState + " directory name length: " + nextLength);
+
+                changeState(State.READ_DIRECTORY_NAME);
+            }
+
+            if (currentState.equals(State.READ_DIRECTORY_NAME) && buf.readableBytes() >= nextLength) {
+                byte[] fileName = new byte[nextLength];
+                buf.readBytes(fileName);
+                String dirName = new String(fileName, StandardCharsets.UTF_8);
+                currentDir = Paths.get(currentDir.toString() + "/" + dirName);
+                log.info("State: " + currentState + " directory name: " + currentDir.toString());
+                sentService.sendFileList(currentDir, ctx, future -> {
+                    if (!future.isSuccess()) {
+                        future.cause().printStackTrace();
+                    }
+                    if (future.isSuccess()) {
+                        changeState(State.IDLE);
+                    }
+                });
+            }
+
+            if (currentState.equals(State.GO_TO_PARENT_DIRECTORY)) {
+                //todo тут добавить проверку не поднимаемся ли выше родительсекой
+                currentDir = currentDir.getParent();
+                log.info("State: " + currentState + " directory name: " + currentDir.toString());
+                sentService.sendFileList(currentDir, ctx, future -> {
+                    if (!future.isSuccess()) {
+                        future.cause().printStackTrace();
+                    }
+                    if (future.isSuccess()) {
+                        changeState(State.IDLE);
+                    }
+                });
             }
 
 
             if (currentState.equals(State.READ_SEND_FILE_NAME_LENGTH) && buf.readableBytes() >= 4) {
                 nextLength = buf.readInt();
-                redSize += 4;
+                log.info("State: " + currentState + " nextLength: " + nextLength);
 
-                currentState = State.READ_SEND_FILE_NAME;
-                System.out.println("State: " + State.READ_SEND_FILE_NAME_LENGTH + " nextLength: " + nextLength);
+                changeState(State.READ_SEND_FILE_NAME);
             }
 
 
             if (currentState.equals(State.READ_SEND_FILE_NAME) && buf.readableBytes() >= nextLength) {
                 byte[] fileName = new byte[nextLength];
                 buf.readBytes(fileName);
-                this.fileName = new String(fileName, "UTF-8");
-                redSize += nextLength;
-                currentState = State.SEND_FILE;
-            }
-
-            if (currentState.equals(State.SEND_FILE)) {
-                System.out.println("STATE: SEND_FILE");
-                executorService.execute(() -> {
-
-                    System.out.println(fileName);
-                    Path path = Paths.get("/home/sergei/IdeaProjects/Educational projects/Cloud-storage/server_storage/" + fileName);
-
-                    long fileSize;
-                    try {
-                        fileSize = Files.size(path);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
+                String fileName1 = new String(fileName, StandardCharsets.UTF_8);
+                log.info("State: " + currentState + " nextLength: " + nextLength);
+                sentService.sendFile(currentDir, fileName1, ctx, future -> {
+                    if (!future.isSuccess()) {
+                        future.cause().printStackTrace();
                     }
-
-                    FileRegion region = new DefaultFileRegion(path.toFile(), 0, fileSize);
-                    byte[] commandName = Commands.DOWNLOAD_FILE.toString().getBytes(StandardCharsets.UTF_8);
-                    byte[] filenameBytes = path.getFileName().toString().getBytes(StandardCharsets.UTF_8);
-
-                    long packageSize = 0L;
-
-                    packageSize += 8;                       // long длина посылки
-                    packageSize += 4;                       // int длина наименования команды
-                    packageSize += commandName.length;      // наименование команды
-                    packageSize += 4;                       // int длина имени файла
-                    packageSize += filenameBytes.length;    // имя файла
-                    packageSize += 8;                       // long длина файла
-                    packageSize += fileSize;                // файл
-
-                    System.out.println("Отправлен файл с размером: "+ packageSize);
-                    System.out.println("Размер файла в посылке " + fileSize);
-
-                    ByteBuf bufWriteFile = null;
-                    bufWriteFile = ByteBufAllocator.DEFAULT.directBuffer(1);
-                    bufWriteFile.writeLong(packageSize);
-                    bufWriteFile.writeInt(commandName.length);
-                    bufWriteFile.writeBytes(commandName);
-                    bufWriteFile.writeInt(filenameBytes.length);
-                    bufWriteFile.writeBytes(filenameBytes);
-                    bufWriteFile.writeLong(fileSize);
-
-                    ctx.channel().writeAndFlush(bufWriteFile);
-
-                    System.out.println("Отправили данные по файлу");
-
-                    ctx.channel().writeAndFlush(region);
-
-                    System.out.println("Отправили файл");
-                    redSize =0L;
-                    currentState = State.IDLE;
-                    System.out.println(currentState);
-                });
-
-            }
-
-
-            if (currentState.equals(State.SENT_REMOTE_FILE_LIST)) {
-
-                executorService.execute(() -> {
-                    List<String> filesList = null;
-                    try {
-                        filesList = Files.list(Paths.get("server_storage"))
-                                .sorted((o1, o2) -> {
-                                    if (Files.isDirectory(o1) && !Files.isDirectory(o2)) {
-                                        return -1;
-                                    } else if (!Files.isDirectory(o1) && Files.isDirectory(o2)) {
-                                        return 1;
-                                    } else return 0;
-                                })
-                                .map(p -> {
-                                    if (!Files.isDirectory(p)) {
-                                        return p.getFileName().toString();
-                                    } else {
-                                        return "[dir] " + p.getFileName().toString();
-                                    }
-                                })
-                                .collect(Collectors.toList());
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                    if (future.isSuccess()) {
+                        changeState(State.IDLE);
                     }
-
-                    byte[] commandName = Commands.SENT_FILE_LIST.toString().getBytes(StandardCharsets.UTF_8);
-                    byte[] fileList1 = new byte[0];
-
-                    try {
-                        ByteArrayOutputStream b = new ByteArrayOutputStream();
-                        ObjectOutputStream o = new ObjectOutputStream(b);
-                        o.writeObject(filesList);
-                        fileList1 = b.toByteArray();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-
-                    long packageSize = 0L;
-
-                    packageSize += 8;                       // long длина посылки
-                    packageSize += 4;                       // int длина наименования команды
-                    packageSize += commandName.length;      // наименование команд
-                    packageSize += 8;                       // long длина файла
-                    packageSize += fileList1.length;                // файл
-
-                    System.out.println(packageSize);
-                    System.out.println(fileList1);
-
-
-//
-                    ByteBuf bufWrite = null;
-                    bufWrite = ByteBufAllocator.DEFAULT.directBuffer(1);
-                    bufWrite.writeLong(packageSize);
-                    bufWrite.writeInt(commandName.length);
-                    bufWrite.writeBytes(commandName);
-                    bufWrite.writeLong(fileList1.length);
-                    bufWrite.writeBytes(fileList1);
-
-                    ctx.channel().writeAndFlush(bufWrite);
-
-                    redSize = 0L;
-                    currentState = State.IDLE;
                 });
             }
 
 
-            if (currentState == State.NAME_LENGTH && buf.readableBytes() >= 4) {
+            if (currentState.equals(State.READ_FILE_NAME_LENGTH) && buf.readableBytes() >= 4) {
                 nextLength = buf.readInt();
-                redSize += 4;
+                log.info("State: " + currentState + " nextLength: " + nextLength);
 
-                currentState = State.NAME;
-                System.out.println("State: " + State.NAME + " nextLength: " + nextLength);
+                changeState(State.READ_FILE_NAME);
             }
 
-            if (currentState == State.NAME && buf.readableBytes() >= nextLength) {
+            if (currentState.equals(State.READ_FILE_NAME) && buf.readableBytes() >= nextLength) {
                 byte[] fileName = new byte[nextLength];
                 buf.readBytes(fileName);
-                redSize += nextLength;
-                System.out.println("STATE: Filename received - _" + new String(fileName, "UTF-8"));
-                out = new BufferedOutputStream(new FileOutputStream("/home/sergei/IdeaProjects/Educational projects/Cloud-storage/server_storage/"+"Файл пишет сервак _" + new String(fileName)));
-                currentState = State.FILE_LENGTH;
+                log.info("State: " + currentState + " Filename received: " + new String(fileName, StandardCharsets.UTF_8));
+
+                out = new BufferedOutputStream(Files.newOutputStream(Paths.get(currentDir + "/" + new String(fileName))));
+
+                changeState(State.READ_FILE_LENGTH);
             }
 
-            if (currentState == State.FILE_LENGTH && buf.readableBytes() >= 8) {
+            if (currentState.equals(State.READ_FILE_LENGTH) && buf.readableBytes() >= 8) {
                 fileLength = buf.readLong();
-                redSize += 8;
-                System.out.println("STATE: File length received - " + fileLength);
-                currentState = State.FILE;
+                log.info("State: " + currentState + " File length: " + fileLength);
+
+                changeState(State.READ_FILE);
             }
 
 
-            if (currentState == State.FILE && buf.readableBytes()>0) {
-                redSize++;
+            if (currentState.equals(State.READ_FILE) && buf.readableBytes() > 0) {
                 out.write(buf.readByte());
+                redFileSize++;
             }
 
         }
-            if (currentState == State.FILE && packageSize == redSize) {
-                System.out.println("File received");
-                out.close();
-                packageSize = 0L;
-                redSize = 0L;
-                currentState = State.IDLE;
-                System.out.println("State: " + currentState);
 
+
+        if (currentState.equals(State.READ_FILE) && fileLength == redFileSize) {
+            log.info("State: " + currentState + " file received");
+            out.close();
+            redFileSize = 0L;
+            sentService.sendFileList(currentDir, ctx, future -> {
+                if (!future.isSuccess()) {
+                    future.cause().printStackTrace();
+                }
+                if (future.isSuccess()) {
+                    changeState(State.IDLE);
+                }
+            });
         }
 
         if (buf.readableBytes() == 0) {
             buf.release();
         }
+    }
+
+    private void changeState(State nextState) {
+        State previousState = currentState;
+        currentState = nextState;
+        log.info("State: " + previousState + " ---> " + nextState);
     }
 
 

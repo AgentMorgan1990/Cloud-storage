@@ -3,11 +3,10 @@ package ru.example.chat;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.example.model.Commands;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -19,21 +18,22 @@ import java.util.concurrent.Executors;
 public class ProtoFileSender {
 
     private ExecutorService executorService;
+    private static final Logger log = LogManager.getLogger(ProtoFileSender.class);
 
     public ProtoFileSender() {
         executorService = Executors.newSingleThreadExecutor();
     }
 
-    public void refreshRemoteFileList(Channel channel, ChannelFutureListener finishListener){
-        executorService.execute(()->{
+    public void refreshRemoteFileList(Channel channel, ChannelFutureListener finishListener) {
+        executorService.execute(() -> {
             long packageSize = 0L;
-            byte[] commandName = Commands.REFRESH_REMOTE_FILE_LIST.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] commandName = Commands.REFRESH_SERVER_FILE_AND_DIRECTORY_LIST.toString().getBytes(StandardCharsets.UTF_8);
 
             packageSize += 8;
             packageSize += 4;
             packageSize += commandName.length;
 
-            System.out.println(packageSize);
+            log.info("Send command: " + Commands.REFRESH_SERVER_FILE_AND_DIRECTORY_LIST + " . Package size: " + packageSize);
 
             ByteBuf buf = null;
             buf = ByteBufAllocator.DEFAULT.directBuffer(1);
@@ -53,7 +53,7 @@ public class ProtoFileSender {
         executorService.execute(() -> {
 
             long packageSize = 0L;
-            byte[] commandName = Commands.UPLOAD_FILE.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] commandName = Commands.SEND_FILE_FROM_SERVER.toString().getBytes(StandardCharsets.UTF_8);
             byte[] fileNameArr = fileName.getBytes();
 
             packageSize += 8;
@@ -62,7 +62,7 @@ public class ProtoFileSender {
             packageSize += 4;
             packageSize += fileNameArr.length;
 
-            System.out.println(packageSize);
+            log.info("Send command: " + Commands.SEND_FILE_FROM_SERVER + ". Package size: " + packageSize + ". File name: " + fileName);
 
             ByteBuf buf = null;
             buf = ByteBufAllocator.DEFAULT.directBuffer(1);
@@ -91,7 +91,7 @@ public class ProtoFileSender {
             }
 
             FileRegion region = new DefaultFileRegion(path.toFile(), 0, fileSize);
-            byte[] commandName = Commands.DOWNLOAD_FILE.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] commandName = Commands.SEND_FILE_TO_SERVER.toString().getBytes(StandardCharsets.UTF_8);
             byte[] filenameBytes = path.getFileName().toString().getBytes(StandardCharsets.UTF_8);
 
             long packageSize = 0L;
@@ -104,7 +104,7 @@ public class ProtoFileSender {
             packageSize += 8;                       // long длина файла
             packageSize += fileSize;                // файл
 
-            System.out.println(packageSize);
+            log.info("Send command: " + Commands.SEND_FILE_TO_SERVER + ". Package size: " + packageSize + ". File size: " + fileSize);
 
             ByteBuf buf = null;
             buf = ByteBufAllocator.DEFAULT.directBuffer(1);
@@ -114,7 +114,6 @@ public class ProtoFileSender {
             buf.writeInt(filenameBytes.length);
             buf.writeBytes(filenameBytes);
             buf.writeLong(fileSize);
-
             channel.writeAndFlush(buf);
 
             ChannelFuture transferOperationFuture = channel.writeAndFlush(region);
@@ -123,6 +122,62 @@ public class ProtoFileSender {
                 transferOperationFuture.addListener(finishListener);
             }
         });
+    }
+
+    public void directoryUp(Channel channel, ChannelFutureListener finishListener) {
+        executorService.execute(() -> {
+            long packageSize = 0L;
+            byte[] commandName = Commands.GO_TO_SERVER_PARENT_DIRECTORY.toString().getBytes(StandardCharsets.UTF_8);
+
+            packageSize += 8;
+            packageSize += 4;
+            packageSize += commandName.length;
+
+            log.info("Send command: " + Commands.GO_TO_SERVER_PARENT_DIRECTORY + ". Package size: " + packageSize);
+
+            ByteBuf buf = null;
+            buf = ByteBufAllocator.DEFAULT.directBuffer(1);
+            buf.writeLong(packageSize);
+            buf.writeInt(commandName.length);
+            buf.writeBytes(commandName);
+            ChannelFuture transferOperationFuture = channel.writeAndFlush(buf);
+
+            if (finishListener != null) {
+                transferOperationFuture.addListener(finishListener);
+            }
+        });
+
+    }
+
+    public void goToDirectory(Channel channel, String substring, ChannelFutureListener finishListener) {
+        executorService.execute(() -> {
+
+            long packageSize = 0L;
+            byte[] commandName = Commands.GO_TO_SERVER_DIRECTORY.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] fileNameArr = substring.getBytes();
+
+            packageSize += 8;
+            packageSize += 4;
+            packageSize += commandName.length;
+            packageSize += 4;
+            packageSize += fileNameArr.length;
+
+            log.info("Send command: " + Commands.GO_TO_SERVER_DIRECTORY + ". Package size: " + packageSize);
+
+            ByteBuf buf = null;
+            buf = ByteBufAllocator.DEFAULT.directBuffer(1);
+            buf.writeLong(packageSize);
+            buf.writeInt(commandName.length);
+            buf.writeBytes(commandName);
+            buf.writeInt(fileNameArr.length);
+            buf.writeBytes(fileNameArr);
+            ChannelFuture transferOperationFuture = channel.writeAndFlush(buf);
+
+            if (finishListener != null) {
+                transferOperationFuture.addListener(finishListener);
+            }
+        });
+
     }
 }
 

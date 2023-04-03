@@ -9,17 +9,14 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.example.handler.ProtocolInboundHandler;
 
-//todo отрефачить набо комманд
-//todo отрефачить набор стейтов
-//todo добавть навигацию на серваке
-//todo добавить функционал удаления файлов/папок и создания папок
 
+//todo добавить функционал удаления файлов/папок и создания папок на серваке
 //todo отрефачить код в клиенте
 //todo отрефачить код на серваке
-
 //todo добавть авторизацию пока с реализацией в массиве на серваке
 //todo добавить авторизацию с БД
-
+//todo прогресс бар на загрузку файла
+//todo прогресс бар на скачивание файла
 
 public class ProtocolServer {
 

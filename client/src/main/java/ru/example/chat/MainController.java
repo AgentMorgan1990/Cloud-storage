@@ -8,6 +8,8 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import lombok.SneakyThrows;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,6 +32,7 @@ public class MainController implements Initializable {
     private Path currentDir = Paths.get("/");
 
     private Network network;
+    private static final Logger log = LogManager.getLogger(MainController.class);
 
     //todo вынести идентификатор [dir] в финал переменную
 
@@ -107,9 +110,12 @@ public class MainController implements Initializable {
         CountDownLatch networkStarter = new CountDownLatch(1);
         //todo надо будет навешать колбэки на методы, а не в инициализации
         new Thread(() -> network.start(networkStarter, callback -> {
-            serverFilesList.getItems().clear();
-            serverFilesList.getItems().add("/..");
-            callback.forEach(o -> serverFilesList.getItems().add(o));
+            Platform.runLater(()-> {
+                serverFilesList.getItems().clear();
+                serverFilesList.getItems().add("/..");
+                callback.forEach(o -> serverFilesList.getItems().add(o));
+
+            });
         })).start();
         networkStarter.await();
         refreshLocalFilesList();
@@ -126,31 +132,52 @@ public class MainController implements Initializable {
                     refreshLocalFilesList();
                     //todo поднять папку на уровень выше
                 } else if (item.startsWith("[dir]")) {
-                    currentDir = Paths.get(currentDir+"/"+item.substring(6));
+                    currentDir = Paths.get(currentDir + "/" + item.substring(6));
                     refreshLocalFilesList();
                 } else {
                     fileField.clear();
-                    fileField.appendText(clientFilesList.getSelectionModel().getSelectedItem());
+                    fileField.appendText(item);
                 }
             }
         });
         serverFilesList.setOnMouseClicked(event -> {
+            String item = serverFilesList.getSelectionModel().getSelectedItem();
             if (event.getClickCount() == 2) {
-                fileField.clear();
-                fileField.appendText(serverFilesList.getSelectionModel().getSelectedItem());
+                if (item.equals("/..")) {
+                    protoFileSender.directoryUp(network.getCurrentChannel(), future -> {
+                        if (!future.isSuccess()) {
+                            future.cause().printStackTrace();
+                        }
+                        if (future.isSuccess()) {
+                            log.info("Send request to go to remote parent directory");
+                        }
+                    });
+                } else if (item.startsWith("[dir]")) {
+                    protoFileSender.goToDirectory(network.getCurrentChannel(), item.substring(6), future -> {
+                        if (!future.isSuccess()) {
+                            future.cause().printStackTrace();
+                        }
+                        if (future.isSuccess()) {
+                            log.info("Send request to go to remote directory: " + item);
+                        }
+                    });
+                } else {
+                    fileField.clear();
+                    fileField.appendText(item);
+                }
             }
         });
     }
     public void pressOnDownloadBtn(ActionEvent actionEvent) throws IOException {
             try {
                 //todo тут нужно поработать с относительными и абсолютными путями, ограничить доступы программы к хранилищам
-                protoFileSender.downFile(Paths.get("/home/sergei/IdeaProjects/Educational projects/Cloud-storage/client_storage/" + fileField.getText()),
+                protoFileSender.downFile(Paths.get(currentDir +"/" + fileField.getText()),
                         network.getCurrentChannel(), future -> {
                     if (!future.isSuccess()) {
                         future.cause().printStackTrace();
                     }
                     if (future.isSuccess()) {
-                        System.out.println("Файл успешно передан");
+                        log.info("File was successfully transferred");
                     }
                 });
             } catch (IOException e) {
@@ -167,7 +194,7 @@ public class MainController implements Initializable {
                 future.cause().printStackTrace();
             }
             if (future.isSuccess()) {
-                System.out.println("Файл успешно запрошен "+ fileName);
+                log.info("File " + fileName + " successfully requested");
             }
         });
     }
@@ -203,7 +230,7 @@ public class MainController implements Initializable {
                 future.cause().printStackTrace();
             }
             if (future.isSuccess()) {
-                System.out.println("Файл успешно передан");
+                log.info("Remote file list is allowed");
             }
         });
     }
