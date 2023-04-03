@@ -25,12 +25,8 @@
             <VBox HBox.hgrow="ALWAYS">
                 <ListView fx:id="clientFilesList" VBox.vgrow="ALWAYS"/>
                 <HBox alignment="CENTER_RIGHT">
-                    <Button onAction="#pressOnAutentificationBtn" text="Создать папку" prefWidth="150"/>
-                    <Button onAction="#pressOnAutentificationBtn" text="Удалить папку" prefWidth="150"/>
-                </HBox>
-                <HBox alignment="CENTER_RIGHT">
-                    <Button onAction="#pressOnAutentificationBtn" text="Войти в папку" prefWidth="150"/>
-                    <Button onAction="#pressOnAutentificationBtn" text="На уровень выше" prefWidth="150"/>
+                    <Button onAction="#pressOnCreateLocalBtn" text="Создать папку" prefWidth="150"/>
+                    <Button onAction="#pressOnDeleteLocalBtn" text="Удалить" prefWidth="150"/>
                 </HBox>
             </VBox>
 
@@ -38,11 +34,7 @@
                 <ListView fx:id="serverFilesList" VBox.vgrow="ALWAYS"/>
                 <HBox alignment="CENTER_RIGHT">
                     <Button onAction="#pressOnAutentificationBtn" text="Создать папку" prefWidth="150"/>
-                    <Button onAction="#pressOnAutentificationBtn" text="Удалить папку" prefWidth="150"/>
-                </HBox>
-                <HBox alignment="CENTER_RIGHT">
-                    <Button onAction="#pressOnAutentificationBtn" text="Войти в папку" prefWidth="150"/>
-                    <Button onAction="#pressOnAutentificationBtn" text="На уровень выше" prefWidth="150"/>
+                    <Button onAction="#pressOnAutentificationBtn" text="Удалить" prefWidth="150"/>
                 </HBox>
             </VBox>
 
