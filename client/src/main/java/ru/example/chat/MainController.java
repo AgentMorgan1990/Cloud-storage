@@ -170,7 +170,6 @@ public class MainController implements Initializable {
     }
     public void pressOnDownloadBtn(ActionEvent actionEvent) throws IOException {
             try {
-                //todo тут нужно поработать с относительными и абсолютными путями, ограничить доступы программы к хранилищам
                 protoFileSender.downFile(Paths.get(currentDir +"/" + fileField.getText()),
                         network.getCurrentChannel(), future -> {
                     if (!future.isSuccess()) {
@@ -223,6 +222,36 @@ public class MainController implements Initializable {
         refreshLocalFilesList();
     }
 
+    public void pressOnCreateRemoteBtn(ActionEvent actionEvent) {
+
+        protoFileSender.createDirectory(fileField.getText(),
+                network.getCurrentChannel(), future -> {
+                    if (!future.isSuccess()) {
+                        future.cause().printStackTrace();
+                    }
+                    if (future.isSuccess()) {
+                        log.info("Request to creating directory has been sent to server");
+                    }
+                });
+
+    }
+
+    public void pressOnDeleteRemoteBtn(ActionEvent actionEvent) {
+            String deletedName = serverFilesList.getSelectionModel().getSelectedItem();
+            if (deletedName.startsWith("[dir]")) deletedName = deletedName.substring(6);
+
+            protoFileSender.deleteFileOrDirectory(deletedName,
+                    network.getCurrentChannel(), future -> {
+                        if (!future.isSuccess()) {
+                            future.cause().printStackTrace();
+                        }
+                        if (future.isSuccess()) {
+                            log.info("Request to deleting file or directory has been sent to server");
+                        }
+                    });
+    }
+
+
 
     private void refreshRemoteFilesList(){
         protoFileSender.refreshRemoteFileList(network.getCurrentChannel(), future -> {
@@ -230,7 +259,7 @@ public class MainController implements Initializable {
                 future.cause().printStackTrace();
             }
             if (future.isSuccess()) {
-                log.info("Remote file list is allowed");
+                log.info("Request to get remote file list has been sent to server");
             }
         });
     }
