@@ -27,7 +27,11 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
         READ_SEND_FILE_NAME,
         GO_TO_PARENT_DIRECTORY,
         READ_DIRECTORY_NAME_LENGTH,
-        READ_DIRECTORY_NAME
+        READ_DIRECTORY_NAME,
+        READ_DIRECTORY_NAME_LENGTH_FOR_DELETING,
+        READ_DIRECTORY_NAME_FOR_DELETING,
+        READ_DIRECTORY_NAME_LENGTH_FOR_CREATING,
+        READ_DIRECTORY_NAME_FOR_CREATING
     }
 
     private State currentState = State.IDLE;
@@ -103,8 +107,69 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
                     case GO_TO_SERVER_DIRECTORY:
                         changeState(State.READ_DIRECTORY_NAME_LENGTH);
                         break;
+
+                    case DELETE_FILE_OR_DIRECTORY_ON_SERVER:
+                        changeState(State.READ_DIRECTORY_NAME_LENGTH_FOR_DELETING);
+                        break;
+
+                    case CREATE_DIRECTORY_ON_SERVER:
+                        changeState(State.READ_DIRECTORY_NAME_LENGTH_FOR_CREATING);
+                        break;
                 }
             }
+
+            if (currentState.equals(State.READ_DIRECTORY_NAME_LENGTH_FOR_CREATING) && buf.readableBytes() >= 4) {
+                nextLength = buf.readInt();
+                log.info("State: " + currentState + " directory name length: " + nextLength);
+
+                changeState(State.READ_DIRECTORY_NAME_LENGTH_FOR_CREATING);
+            }
+
+            if (currentState.equals(State.READ_DIRECTORY_NAME_LENGTH_FOR_CREATING) && buf.readableBytes() >= nextLength) {
+                byte[] fileName = new byte[nextLength];
+                buf.readBytes(fileName);
+                String dirName = new String(fileName, StandardCharsets.UTF_8);
+
+                File theDir = new File(currentDir + "/" + dirName);
+                if (!theDir.exists()) theDir.mkdirs();
+
+                log.info("State: " + currentState + " directory name: " + dirName);
+
+                sentService.sendFileList(currentDir, ctx, future -> {
+                    if (!future.isSuccess()) {
+                        future.cause().printStackTrace();
+                    }
+                    if (future.isSuccess()) {
+                        changeState(State.IDLE);
+                    }
+                });
+            }
+
+            if (currentState.equals(State.READ_DIRECTORY_NAME_LENGTH_FOR_DELETING) && buf.readableBytes() >= 4) {
+                nextLength = buf.readInt();
+                log.info("State: " + currentState + " directory name length: " + nextLength);
+
+                changeState(State.READ_DIRECTORY_NAME_LENGTH_FOR_DELETING);
+            }
+
+            if (currentState.equals(State.READ_DIRECTORY_NAME_LENGTH_FOR_DELETING) && buf.readableBytes() >= nextLength) {
+                byte[] fileName = new byte[nextLength];
+                buf.readBytes(fileName);
+                String dirName = new String(fileName, StandardCharsets.UTF_8);
+
+                Files.delete(Paths.get(currentDir + "/" + dirName));
+                log.info("State: " + currentState + " directory name: " + dirName);
+
+                sentService.sendFileList(currentDir, ctx, future -> {
+                    if (!future.isSuccess()) {
+                        future.cause().printStackTrace();
+                    }
+                    if (future.isSuccess()) {
+                        changeState(State.IDLE);
+                    }
+                });
+            }
+
 
             if (currentState.equals(State.READ_DIRECTORY_NAME_LENGTH) && buf.readableBytes() >= 4) {
                 nextLength = buf.readInt();

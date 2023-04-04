@@ -179,5 +179,71 @@ public class ProtoFileSender {
         });
 
     }
+
+    public void deleteFileOrDirectory(String deletedFileOrDirectoryName, Channel channel, ChannelFutureListener finishListener) {
+
+        executorService.execute(() -> {
+
+            long packageSize = 0L;
+            byte[] commandName = Commands.DELETE_FILE_OR_DIRECTORY_ON_SERVER.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] fileNameArr = deletedFileOrDirectoryName.getBytes();
+
+            packageSize += 8;
+            packageSize += 4;
+            packageSize += commandName.length;
+            packageSize += 4;
+            packageSize += fileNameArr.length;
+
+            log.info("Send command: " + Commands.DELETE_FILE_OR_DIRECTORY_ON_SERVER + ". Package size: " + packageSize + ". File or directory name: " + deletedFileOrDirectoryName);
+
+            ByteBuf buf = null;
+            buf = ByteBufAllocator.DEFAULT.directBuffer(1);
+            buf.writeLong(packageSize);
+            buf.writeInt(commandName.length);
+            buf.writeBytes(commandName);
+            buf.writeInt(fileNameArr.length);
+            buf.writeBytes(fileNameArr);
+            ChannelFuture transferOperationFuture = channel.writeAndFlush(buf);
+
+
+            if (finishListener != null) {
+                transferOperationFuture.addListener(finishListener);
+            }
+        });
+    }
+
+    public void createDirectory(String creatingDirectoryName, Channel channel, ChannelFutureListener finishListener) {
+
+        executorService.execute(() -> {
+
+            long packageSize = 0L;
+            byte[] commandName = Commands.CREATE_DIRECTORY_ON_SERVER.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] fileNameArr = creatingDirectoryName.getBytes();
+
+            packageSize += 8;
+            packageSize += 4;
+            packageSize += commandName.length;
+            packageSize += 4;
+            packageSize += fileNameArr.length;
+
+            log.info("Send command: " + Commands.CREATE_DIRECTORY_ON_SERVER + ". Package size: " + packageSize + ". Directory name: " + creatingDirectoryName);
+
+            ByteBuf buf = null;
+            buf = ByteBufAllocator.DEFAULT.directBuffer(1);
+            buf.writeLong(packageSize);
+            buf.writeInt(commandName.length);
+            buf.writeBytes(commandName);
+            buf.writeInt(fileNameArr.length);
+            buf.writeBytes(fileNameArr);
+            ChannelFuture transferOperationFuture = channel.writeAndFlush(buf);
+
+
+            if (finishListener != null) {
+                transferOperationFuture.addListener(finishListener);
+            }
+        });
+    }
+
+
 }
 
