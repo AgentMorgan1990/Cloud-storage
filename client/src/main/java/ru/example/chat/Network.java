@@ -23,11 +23,7 @@ public class Network {
         return INSTANCE;
     }
 
-    private Callback callback;
-
-    private Network() {
-
-    }
+    private Network() {}
 
     private Channel currentChannel;
 
@@ -35,9 +31,16 @@ public class Network {
         return currentChannel;
     }
 
+    public void setOnReceivedFileCallback(Callback callback) {
+        currentChannel.pipeline().get(ProtocolInboundHandler.class).setCallbackOnReceivedFile(callback);
+    }
 
-    public void start(CountDownLatch countDownLatch, Callback callback) {
-        this.callback = callback;
+    public void setOnReceivedFileListCallback(Callback callback){
+        currentChannel.pipeline().get(ProtocolInboundHandler.class).setCallbackOnReceivedFileList(callback);
+    }
+
+
+    public void start(CountDownLatch countDownLatch) {
         EventLoopGroup group = new NioEventLoopGroup();
         try {
             Bootstrap clientBootstrap = new Bootstrap();
@@ -46,7 +49,7 @@ public class Network {
                     .remoteAddress(new InetSocketAddress("localhost", 9090))
                     .handler(new ChannelInitializer<SocketChannel>() {
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
-                            socketChannel.pipeline().addLast(new ProtocolInboundHandler(callback));
+                            socketChannel.pipeline().addLast(new ProtocolInboundHandler());
                             currentChannel = socketChannel;
                         }
                     });

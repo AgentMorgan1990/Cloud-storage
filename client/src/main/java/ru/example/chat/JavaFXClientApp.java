@@ -11,7 +11,7 @@ public class JavaFXClientApp extends Application {
     public void start(Stage primaryStage) throws Exception{
         FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/main.fxml"));
         Parent root = fxmlLoader.load();
-        primaryStage.setTitle("Box Client");
+        primaryStage.setTitle("Cloud storage client");
         Scene scene = new Scene(root);
         primaryStage.setScene(scene);
         primaryStage.show();
