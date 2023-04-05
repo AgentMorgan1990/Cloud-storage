@@ -11,6 +11,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 
 public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
@@ -37,11 +38,17 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
     private long redFileListLength = 0L;
     private BufferedOutputStream out;
     private byte[] fileList;
-    private Callback callback;
+    private Callback callbackOnReceivedFile;
+    private Callback callbackOnReceivedFileList;
     private static final Logger log = LogManager.getLogger(ProtocolInboundHandler.class);
 
-    public ProtocolInboundHandler(Callback callback)  {this.callback = callback;}
+    public void setCallbackOnReceivedFileList(Callback callbackOnReceivedFileList){
+        this.callbackOnReceivedFileList = callbackOnReceivedFileList;
+    }
 
+    public void setCallbackOnReceivedFile(Callback callbackOnReceivedFile) {
+        this.callbackOnReceivedFile = callbackOnReceivedFile;
+    }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws IOException, ClassNotFoundException {
@@ -108,6 +115,7 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
                 log.info("STATE: " + currentState + ". Filename received - " + new String(fileName, StandardCharsets.UTF_8));
                 //todo сюда нужно прокинуть текущую папку на клиенте
                 out = new BufferedOutputStream(Files.newOutputStream(Paths.get("/home/sergei/IdeaProjects/Educational projects/Cloud-storage/client_storage/" + new String(fileName))));
+                callbackOnReceivedFile.call(new ArrayList<>());
                 //todo колбэк на обновление файлов на клиенте
                 changeState(State.READ_FILE_LENGTH);
             }
@@ -144,7 +152,7 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
             b.close();
             o.close();
 
-            callback.call(list);
+            callbackOnReceivedFileList.call(list);
 
             log.info("STATE: " + currentState + ". Remote files list: " + list);
             changeState(State.IDLE);

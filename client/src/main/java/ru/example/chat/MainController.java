@@ -17,6 +17,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.concurrent.CountDownLatch;
 
@@ -102,22 +103,28 @@ public class MainController implements Initializable {
             }
         });
 
-
-
         network = Network.getInstance();
         addNavigationListener();
         protoFileSender = new ProtoFileSender();
         CountDownLatch networkStarter = new CountDownLatch(1);
-        //todo надо будет навешать колбэки на методы, а не в инициализации
-        new Thread(() -> network.start(networkStarter, callback -> {
+        new Thread(() -> network.start(networkStarter)).start();
+        networkStarter.await();
+
+        Network.getInstance().setOnReceivedFileCallback((callback) -> {
+            Platform.runLater(() -> {
+                refreshLocalFilesList();
+            });
+        });
+
+        Network.getInstance().setOnReceivedFileListCallback((callback)->{
             Platform.runLater(()-> {
                 serverFilesList.getItems().clear();
                 serverFilesList.getItems().add("/..");
                 callback.forEach(o -> serverFilesList.getItems().add(o));
 
             });
-        })).start();
-        networkStarter.await();
+        });
+
         refreshLocalFilesList();
         refreshRemoteFilesList();
     }
@@ -204,11 +211,21 @@ public class MainController implements Initializable {
     }
 
     public void pressOnCreateLocalBtn(ActionEvent actionEvent) {
-        File theDir = new File(currentDir + "/" + fileField.getText());
-        if (!theDir.exists()) {
-            theDir.mkdirs();
+
+        TextInputDialog dialog = new TextInputDialog("new_directory");
+        dialog.setTitle("Create new local directory");
+        dialog.setHeaderText("Look, a Text Input Dialog");
+        dialog.setContentText("Please enter directory name:");
+
+        Optional<String> result = dialog.showAndWait();
+        if (result.isPresent()) {
+            File theDir = new File(currentDir + "/" + result.get());
+            if (!theDir.exists()) {
+                theDir.mkdirs();
+            }
+            refreshLocalFilesList();
+
         }
-        refreshLocalFilesList();
     }
 
     public void pressOnDeleteLocalBtn(ActionEvent actionEvent) {
@@ -224,16 +241,26 @@ public class MainController implements Initializable {
 
     public void pressOnCreateRemoteBtn(ActionEvent actionEvent) {
 
-        protoFileSender.createDirectory(fileField.getText(),
-                network.getCurrentChannel(), future -> {
-                    if (!future.isSuccess()) {
-                        future.cause().printStackTrace();
-                    }
-                    if (future.isSuccess()) {
-                        log.info("Request to creating directory has been sent to server");
-                    }
-                });
+        TextInputDialog dialog = new TextInputDialog("new_directory");
+        dialog.setTitle("Create new remote directory");
+        dialog.setHeaderText("Look, a Text Input Dialog");
+        dialog.setContentText("Please enter directory name:");
 
+        Optional<String> result = dialog.showAndWait();
+        if (result.isPresent()) {
+
+            protoFileSender.createDirectory(result.get(),
+                    network.getCurrentChannel(), future -> {
+                        if (!future.isSuccess()) {
+                            future.cause().printStackTrace();
+                        }
+                        if (future.isSuccess()) {
+                            log.info("Request to creating directory has been sent to server");
+                        }
+                    });
+            refreshLocalFilesList();
+
+        }
     }
 
     public void pressOnDeleteRemoteBtn(ActionEvent actionEvent) {
