@@ -10,6 +10,7 @@ import org.example.model.Commands;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +30,7 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
         READ_FILE
     }
 
+    private Path currentDir;
     private State currentState = State.IDLE;
     private Commands command;
     private int nextLength;
@@ -40,7 +42,14 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
     private byte[] fileList;
     private Callback callbackOnReceivedFile;
     private Callback callbackOnReceivedFileList;
+
+    private Callback callbackOnAuthorizationPass;
+    private Callback callbackOnAuthorizationFailed;
     private static final Logger log = LogManager.getLogger(ProtocolInboundHandler.class);
+
+    public void setCurrentDir(Path currentDir){
+        this.currentDir = currentDir;
+    }
 
     public void setCallbackOnReceivedFileList(Callback callbackOnReceivedFileList){
         this.callbackOnReceivedFileList = callbackOnReceivedFileList;
@@ -48,6 +57,13 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
 
     public void setCallbackOnReceivedFile(Callback callbackOnReceivedFile) {
         this.callbackOnReceivedFile = callbackOnReceivedFile;
+    }
+
+    public void setCallbackOnAuthorizationPass(Callback callbackOnAuthorizationPass) {
+        this.callbackOnAuthorizationPass = callbackOnAuthorizationPass;
+    }
+    public void setCallbackOnAuthorizationFailed(Callback callbackOnAuthorizationFailed) {
+        this.callbackOnAuthorizationFailed = callbackOnAuthorizationFailed;
     }
 
     @Override
@@ -86,6 +102,16 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
                     case REFRESH_SERVER_FILE_AND_DIRECTORY_LIST:
                         changeState(State.READ_REMOTE_FILE_LIST_LENGTH);
                         break;
+
+                    case AUTHORIZATION_OK:
+                        callbackOnAuthorizationPass.call(null);
+                        changeState(State.IDLE);
+                        break;
+
+                    case AUTHORIZATION_FAILED:
+                        callbackOnAuthorizationFailed.call(null);
+                        changeState(State.IDLE);
+                        break;
                 }
             }
 
@@ -113,10 +139,8 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
                 byte[] fileName = new byte[nextLength];
                 buf.readBytes(fileName);
                 log.info("STATE: " + currentState + ". Filename received - " + new String(fileName, StandardCharsets.UTF_8));
-                //todo сюда нужно прокинуть текущую папку на клиенте
-                out = new BufferedOutputStream(Files.newOutputStream(Paths.get("/home/sergei/IdeaProjects/Educational projects/Cloud-storage/client_storage/" + new String(fileName))));
+                out = new BufferedOutputStream(Files.newOutputStream(Paths.get(currentDir + "/" + new String(fileName))));
                 callbackOnReceivedFile.call(new ArrayList<>());
-                //todo колбэк на обновление файлов на клиенте
                 changeState(State.READ_FILE_LENGTH);
             }
 

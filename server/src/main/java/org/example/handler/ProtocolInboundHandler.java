@@ -41,12 +41,20 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
     private long redFileSize = 0L;
     private BufferedOutputStream out;
     private final SentService sentService;
-    private Path rootDir = Paths.get("/home/sergei/IdeaProjects/Educational projects/Cloud-storage/server_storage/");
-    private Path currentDir = Paths.get("/");
+    private Path rootDir;
+    private Path currentDir;
     private static final Logger log = LogManager.getLogger(ProtocolInboundHandler.class);
 
-    public ProtocolInboundHandler() {
-        currentDir = rootDir;
+
+    public ProtocolInboundHandler(String login, ChannelHandlerContext ctx) {
+        ctx.pipeline().removeFirst();
+
+        File rootDir = new File("/home/sergei/IdeaProjects/Educational projects/Cloud-storage/server_storage/" + login);
+        if (!rootDir.exists()) rootDir.mkdirs();
+
+
+        this.rootDir = rootDir.toPath();
+        currentDir = rootDir.toPath();
         sentService = new SentService();
     }
 
@@ -195,8 +203,11 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
             }
 
             if (currentState.equals(State.GO_TO_PARENT_DIRECTORY)) {
-                //todo тут добавить проверку не поднимаемся ли выше родительсекой
-                currentDir = currentDir.getParent();
+
+                if (!rootDir.equals(currentDir)){
+                    currentDir = currentDir.getParent();
+                }
+
                 log.info("State: " + currentState + " directory name: " + currentDir.toString());
                 sentService.sendFileList(currentDir, ctx, future -> {
                     if (!future.isSuccess()) {
