@@ -245,5 +245,41 @@ public class ProtoFileSender {
     }
 
 
+    public void sendAuthorizationRequest(String login, String password, Channel channel, ChannelFutureListener finishListener) {
+        executorService.execute(() -> {
+
+            long packageSize = 0L;
+            byte[] commandName = Commands.AUTHORIZATION_REQUEST.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] loginArr = login.getBytes();
+            byte[] passwordArr = password.getBytes();
+
+            packageSize += 8;
+            packageSize += 4;
+            packageSize += commandName.length;
+            packageSize += 4;
+            packageSize += loginArr.length;
+            packageSize += 4;
+            packageSize += passwordArr.length;
+
+            log.info("Send command: " + Commands.AUTHORIZATION_REQUEST + ". Package size: " + packageSize + ". Login name: " + login);
+
+            ByteBuf buf = null;
+            buf = ByteBufAllocator.DEFAULT.directBuffer(1);
+            buf.writeLong(packageSize);
+            buf.writeInt(commandName.length);
+            buf.writeBytes(commandName);
+            buf.writeInt(loginArr.length);
+            buf.writeBytes(loginArr);
+            buf.writeInt(passwordArr.length);
+            buf.writeBytes(passwordArr);
+            ChannelFuture transferOperationFuture = channel.writeAndFlush(buf);
+
+
+            if (finishListener != null) {
+                transferOperationFuture.addListener(finishListener);
+            }
+        });
+
+    }
 }
 

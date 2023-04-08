@@ -7,6 +7,8 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,9 +26,13 @@ import java.util.concurrent.CountDownLatch;
 public class MainController implements Initializable {
 
     @FXML
-    TextField fileField;
+    TextField fileField, loginField, passwordField;
     @FXML
     ListView<String> clientFilesList, serverFilesList;
+    @FXML
+    HBox authPanel;
+    @FXML
+    VBox mainPanel;
 
     private ProtoFileSender protoFileSender;
     private Path rootDir = Paths.get("/home/sergei/IdeaProjects/Educational projects/Cloud-storage/client_storage/");
@@ -41,7 +47,7 @@ public class MainController implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
 
-        currentDir = rootDir;
+       currentDir = rootDir;
 
         Image packageImage  = new Image(
                 Files.newInputStream(Paths.get("/home/sergei/IdeaProjects/Educational projects/Cloud-storage/client/src/main/resources/image_2.png")),
@@ -107,8 +113,9 @@ public class MainController implements Initializable {
         addNavigationListener();
         protoFileSender = new ProtoFileSender();
         CountDownLatch networkStarter = new CountDownLatch(1);
-        new Thread(() -> network.start(networkStarter)).start();
+        new Thread(() -> network.start(networkStarter, currentDir)).start();
         networkStarter.await();
+        updateCurrentDir(currentDir);
 
         Network.getInstance().setOnReceivedFileCallback((callback) -> {
             Platform.runLater(() -> {
@@ -116,8 +123,8 @@ public class MainController implements Initializable {
             });
         });
 
-        Network.getInstance().setOnReceivedFileListCallback((callback)->{
-            Platform.runLater(()-> {
+        Network.getInstance().setOnReceivedFileListCallback((callback) -> {
+            Platform.runLater(() -> {
                 serverFilesList.getItems().clear();
                 serverFilesList.getItems().add("/..");
                 callback.forEach(o -> serverFilesList.getItems().add(o));
@@ -125,8 +132,19 @@ public class MainController implements Initializable {
             });
         });
 
-        refreshLocalFilesList();
-        refreshRemoteFilesList();
+        Network.getInstance().setOnAuthorizationPass((callback) -> {
+            authPanel.setVisible(false);
+            mainPanel.setVisible(true);
+            refreshLocalFilesList();
+            refreshRemoteFilesList();
+        });
+
+        Network.getInstance().setOnAuthorizationFailed((callback) -> {
+            Platform.runLater(() -> {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Неверный логин или пароль");
+                alert.showAndWait();
+            });
+        });
     }
 
 
@@ -135,11 +153,10 @@ public class MainController implements Initializable {
             if (event.getClickCount() == 2) {
                 String item = clientFilesList.getSelectionModel().getSelectedItem();
                 if (item.equals("/..") && !currentDir.equals(rootDir)) {
-                    currentDir = currentDir.getParent();
+                    updateCurrentDir(currentDir = currentDir.getParent());
                     refreshLocalFilesList();
-                    //todo поднять папку на уровень выше
                 } else if (item.startsWith("[dir]")) {
-                    currentDir = Paths.get(currentDir + "/" + item.substring(6));
+                    updateCurrentDir(currentDir = Paths.get(currentDir + "/" + item.substring(6)));
                     refreshLocalFilesList();
                 } else {
                     fileField.clear();
@@ -205,9 +222,23 @@ public class MainController implements Initializable {
         });
     }
 
-    public void pressOnAutentificationBtn (ActionEvent actionEvent) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION,"Тут пока заглушка ***", ButtonType.CLOSE);
-        alert.showAndWait();
+    public void pressOnAuthorizationBtn(ActionEvent actionEvent) {
+
+        protoFileSender.sendAuthorizationRequest(
+                loginField.getText(),
+                passwordField.getText(),
+                network.getCurrentChannel(),
+                future -> {
+                    if (!future.isSuccess()) {
+                        future.cause().printStackTrace();
+                    }
+                    if (future.isSuccess()) {
+                        log.info("Request to authorization has been sent to server");
+                    }
+                });
+        loginField.clear();
+        passwordField.clear();
+
     }
 
     public void pressOnCreateLocalBtn(ActionEvent actionEvent) {
@@ -315,5 +346,9 @@ public class MainController implements Initializable {
                 e.printStackTrace();
             }
         });
+    }
+
+    private void updateCurrentDir(Path currentDir){
+        Network.getInstance().setCurrentDir(currentDir);
     }
 }

@@ -139,4 +139,27 @@ public class SentService {
             }
         });
     }
+
+    public void sendCommand(ChannelHandlerContext ctx, Commands command) {
+        executorService.execute(() -> {
+
+            byte[] commandName = command.toString().getBytes(StandardCharsets.UTF_8);
+
+            long packageSize = 0L;
+            packageSize += 8;                       // long длина посылки
+            packageSize += 4;                       // int длина наименования команды
+            packageSize += commandName.length;      // наименование команды
+
+
+            log.info("Send remote file. Package size: " + packageSize + ". Command size: " + command);
+
+            ByteBuf bufWriteFile = null;
+            bufWriteFile = ByteBufAllocator.DEFAULT.directBuffer(1);
+            bufWriteFile.writeLong(packageSize);
+            bufWriteFile.writeInt(commandName.length);
+            bufWriteFile.writeBytes(commandName);
+            ctx.channel().writeAndFlush(bufWriteFile);
+
+        });
+    }
 }
