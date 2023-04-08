@@ -10,6 +10,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
 import java.net.InetSocketAddress;
+import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
 
 public class Network {
@@ -39,8 +40,22 @@ public class Network {
         currentChannel.pipeline().get(ProtocolInboundHandler.class).setCallbackOnReceivedFileList(callback);
     }
 
+    public void setOnAuthorizationPass(Callback callback){
+        currentChannel.pipeline().get(ProtocolInboundHandler.class).setCallbackOnAuthorizationPass(callback);
+    }
 
-    public void start(CountDownLatch countDownLatch) {
+    public void setOnAuthorizationFailed(Callback callback){
+        currentChannel.pipeline().get(ProtocolInboundHandler.class).setCallbackOnAuthorizationFailed(callback);
+    }
+
+    public void setCurrentDir(Path currentDir){
+        protocolInboundHandler.setCurrentDir(currentDir);
+    }
+    ProtocolInboundHandler protocolInboundHandler;
+
+
+
+    public void start(CountDownLatch countDownLatch,Path currentDir) {
         EventLoopGroup group = new NioEventLoopGroup();
         try {
             Bootstrap clientBootstrap = new Bootstrap();
@@ -49,7 +64,7 @@ public class Network {
                     .remoteAddress(new InetSocketAddress("localhost", 9090))
                     .handler(new ChannelInitializer<SocketChannel>() {
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
-                            socketChannel.pipeline().addLast(new ProtocolInboundHandler());
+                            socketChannel.pipeline().addLast(protocolInboundHandler = new ProtocolInboundHandler());
                             currentChannel = socketChannel;
                         }
                     });

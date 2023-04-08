@@ -5,11 +5,12 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.example.model.Commands;
+import org.example.model.Command;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,17 +23,17 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
         EXECUTE_COMMAND,
         READ_REMOTE_FILE_LIST_LENGTH,
         READ_REMOTE_FILE_LIST,
-        DESERIALIZE_REMOTE_FILE_LIST,
         READ_FILE_NAME_LENGTH,
         READ_FILE_NAME,
         READ_FILE_LENGTH,
         READ_FILE
     }
 
+    private Path currentDir;
     private State currentState = State.IDLE;
-    private Commands command;
+    private Command command;
     private int nextLength;
-    private long fileListLength;
+    private int fileListLength;
     private long redFileLength = 0L;
     private long fileLength = 0L;
     private long redFileListLength = 0L;
@@ -40,7 +41,14 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
     private byte[] fileList;
     private Callback callbackOnReceivedFile;
     private Callback callbackOnReceivedFileList;
+
+    private Callback callbackOnAuthorizationPass;
+    private Callback callbackOnAuthorizationFailed;
     private static final Logger log = LogManager.getLogger(ProtocolInboundHandler.class);
+
+    public void setCurrentDir(Path currentDir){
+        this.currentDir = currentDir;
+    }
 
     public void setCallbackOnReceivedFileList(Callback callbackOnReceivedFileList){
         this.callbackOnReceivedFileList = callbackOnReceivedFileList;
@@ -48,6 +56,13 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
 
     public void setCallbackOnReceivedFile(Callback callbackOnReceivedFile) {
         this.callbackOnReceivedFile = callbackOnReceivedFile;
+    }
+
+    public void setCallbackOnAuthorizationPass(Callback callbackOnAuthorizationPass) {
+        this.callbackOnAuthorizationPass = callbackOnAuthorizationPass;
+    }
+    public void setCallbackOnAuthorizationFailed(Callback callbackOnAuthorizationFailed) {
+        this.callbackOnAuthorizationFailed = callbackOnAuthorizationFailed;
     }
 
     @Override
@@ -70,7 +85,7 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
             if (currentState.equals(State.READ_COMMAND) && buf.readableBytes() >= 4) {
                 byte[] commandTitle = new byte[buf.readInt()];
                 buf.readBytes(commandTitle);
-                command = Commands.valueOf(new String(commandTitle, StandardCharsets.UTF_8));
+                command = Command.valueOf(new String(commandTitle, StandardCharsets.UTF_8));
                 log.info("State: " + State.READ_COMMAND + " command: " + command);
 
                 changeState(State.EXECUTE_COMMAND);
@@ -86,12 +101,22 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
                     case REFRESH_SERVER_FILE_AND_DIRECTORY_LIST:
                         changeState(State.READ_REMOTE_FILE_LIST_LENGTH);
                         break;
+
+                    case AUTHORIZATION_OK:
+                        callbackOnAuthorizationPass.call(null);
+                        changeState(State.IDLE);
+                        break;
+
+                    case AUTHORIZATION_FAILED:
+                        callbackOnAuthorizationFailed.call(null);
+                        changeState(State.IDLE);
+                        break;
                 }
             }
 
-            if (currentState.equals(State.READ_REMOTE_FILE_LIST_LENGTH) && buf.readableBytes() >= 8) {
-                fileListLength = buf.readLong();
-                fileList = new byte[(int) fileListLength];
+            if (currentState.equals(State.READ_REMOTE_FILE_LIST_LENGTH) && buf.readableBytes() >= 4) {
+                fileListLength = buf.readInt();
+                fileList = new byte[fileListLength];
                 log.info("STATE: " + currentState + ". List length: " + fileListLength);
 
                 changeState(State.READ_REMOTE_FILE_LIST);
@@ -113,10 +138,8 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
                 byte[] fileName = new byte[nextLength];
                 buf.readBytes(fileName);
                 log.info("STATE: " + currentState + ". Filename received - " + new String(fileName, StandardCharsets.UTF_8));
-                //todo сюда нужно прокинуть текущую папку на клиенте
-                out = new BufferedOutputStream(Files.newOutputStream(Paths.get("/home/sergei/IdeaProjects/Educational projects/Cloud-storage/client_storage/" + new String(fileName))));
+                out = new BufferedOutputStream(Files.newOutputStream(Paths.get(currentDir + "/" + new String(fileName))));
                 callbackOnReceivedFile.call(new ArrayList<>());
-                //todo колбэк на обновление файлов на клиенте
                 changeState(State.READ_FILE_LENGTH);
             }
 

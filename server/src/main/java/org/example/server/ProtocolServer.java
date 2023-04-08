@@ -7,29 +7,38 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import org.example.handler.ProtocolInboundHandler;
+import org.example.handler.AuthHandler;
 
 //баги
-//todo обновлять список отображения файлов ан клиенте, когда скачали новы файл с сервака (callback) ++DONE
-//todo протестить, как имплементированный сервис будет работать в многопотоке, кажется есть вероятность ошибок, возможно изменить на решение с хэндлерами
-//todo сохранять на клиенте в ту папку, где сейчас находимся
+
 
 //фичи
-//todo добавть авторизацию пока с реализацией в массиве на серваке
+//todo добавить запаковку с зависимостями, чтобы можно было запускать отдельные приложения сервака и клиента
 //todo добавить авторизацию с БД
 //todo прогресс бар на загрузку файла
 //todo прогресс бар на скачивание файла
 //todo удаление папки, даже если в ней есть файлы
 //todo возможность убрать строку с файлами, а вывести возможность вводить название файлов через диалоговое окно
-//todo настроить в проекте в запаковку в исполняемый файл
 
 //рефакторинг
-//todo рефакторинг код на серваке (продумать о сокращении стейтов, навигация и создание/удаление используют схожие методы по получению имени файла)
-//todo рефакторинг netty добавить код с работой с несколькими хэндлерами
+//todo рефакторинг возможность вынести отработку длины файла, длины команд и команд в отдельный хэндлер или сервис
 //todo рефакторинг netty добавить пример работы с outboundHandler-ом
 //todo рефакторинг общий на клиенте
 //todo рефакторинг общий на серваке
 //todo рефакторинг добавить второй хэндлер на серваке, который будет реализовывать логику, например только чтения файла, разбить логику первого хэндлера на несколько частей
+//Чтение размера пакета и команды -> прокидываем в Авторизацию (если есть) -> прокидываем в исполнение команд
+
+
+/**
+ * для авторизации может потребоваться следующая конструкция для запоминания клиентов,добавлять можно при подключении к
+ * каналу, вроде должно автоматически чистится при отключении
+ *
+ *  ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
+ *  channels.add(channelFuture.channel());
+ *
+ *
+ */
+
 
 public class ProtocolServer {
 
@@ -45,7 +54,7 @@ public class ProtocolServer {
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(SocketChannel serverChannel) {
-                            serverChannel.pipeline().addLast(new ProtocolInboundHandler());
+                            serverChannel.pipeline().addLast(new AuthHandler());
                         }
                     });
             //todo magic number

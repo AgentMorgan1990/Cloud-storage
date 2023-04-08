@@ -7,9 +7,13 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.example.model.Command;
+import org.example.model.SentService;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,11 +28,15 @@ import java.util.concurrent.CountDownLatch;
 public class MainController implements Initializable {
 
     @FXML
-    TextField fileField;
+    TextField fileField, loginField, passwordField;
     @FXML
     ListView<String> clientFilesList, serverFilesList;
+    @FXML
+    HBox authPanel;
+    @FXML
+    VBox mainPanel;
 
-    private ProtoFileSender protoFileSender;
+    private SentService sentService;
     private Path rootDir = Paths.get("/home/sergei/IdeaProjects/Educational projects/Cloud-storage/client_storage/");
     private Path currentDir = Paths.get("/");
 
@@ -43,14 +51,14 @@ public class MainController implements Initializable {
 
         currentDir = rootDir;
 
-        Image packageImage  = new Image(
+        Image packageImage = new Image(
                 Files.newInputStream(Paths.get("/home/sergei/IdeaProjects/Educational projects/Cloud-storage/client/src/main/resources/image_2.png")),
                 15.0,
                 15.0,
                 false,
                 false);
 
-        Image fileImage  = new Image(
+        Image fileImage = new Image(
                 Files.newInputStream(Paths.get("/home/sergei/IdeaProjects/Educational projects/Cloud-storage/client/src/main/resources/image_3.png")),
                 15.0,
                 15.0,
@@ -59,17 +67,18 @@ public class MainController implements Initializable {
 
         clientFilesList.setCellFactory(param -> new ListCell<String>() {
             private ImageView imageView = new ImageView();
+
             @Override
             public void updateItem(String name, boolean empty) {
                 super.updateItem(name, empty);
-                if (empty ) {
+                if (empty) {
                     setText(null);
                     setGraphic(null);
-                } else if (name.startsWith("[dir]")){
+                } else if (name.startsWith("[dir]")) {
                     imageView.setImage(packageImage);
                     setText(name.substring(6));
                     setGraphic(imageView);
-                } else if (name.equals("/..")){
+                } else if (name.equals("/..")) {
                     setText(name);
                     setGraphic(null);
                 } else {
@@ -82,17 +91,18 @@ public class MainController implements Initializable {
 
         serverFilesList.setCellFactory(param -> new ListCell<String>() {
             private final ImageView imageView = new ImageView();
+
             @Override
             public void updateItem(String name, boolean empty) {
                 super.updateItem(name, empty);
                 if (empty) {
                     setText(null);
                     setGraphic(null);
-                } else if (name.startsWith("[dir]")){
+                } else if (name.startsWith("[dir]")) {
                     imageView.setImage(packageImage);
                     setText(name.substring(6));
                     setGraphic(imageView);
-                } else if (name.equals("/..")){
+                } else if (name.equals("/..")) {
                     setText(name);
                     setGraphic(null);
                 } else {
@@ -105,10 +115,11 @@ public class MainController implements Initializable {
 
         network = Network.getInstance();
         addNavigationListener();
-        protoFileSender = new ProtoFileSender();
+        sentService = new SentService();
         CountDownLatch networkStarter = new CountDownLatch(1);
-        new Thread(() -> network.start(networkStarter)).start();
+        new Thread(() -> network.start(networkStarter, currentDir)).start();
         networkStarter.await();
+        updateCurrentDir(currentDir);
 
         Network.getInstance().setOnReceivedFileCallback((callback) -> {
             Platform.runLater(() -> {
@@ -116,8 +127,8 @@ public class MainController implements Initializable {
             });
         });
 
-        Network.getInstance().setOnReceivedFileListCallback((callback)->{
-            Platform.runLater(()-> {
+        Network.getInstance().setOnReceivedFileListCallback((callback) -> {
+            Platform.runLater(() -> {
                 serverFilesList.getItems().clear();
                 serverFilesList.getItems().add("/..");
                 callback.forEach(o -> serverFilesList.getItems().add(o));
@@ -125,8 +136,19 @@ public class MainController implements Initializable {
             });
         });
 
-        refreshLocalFilesList();
-        refreshRemoteFilesList();
+        Network.getInstance().setOnAuthorizationPass((callback) -> {
+            authPanel.setVisible(false);
+            mainPanel.setVisible(true);
+            refreshLocalFilesList();
+            refreshRemoteFilesList();
+        });
+
+        Network.getInstance().setOnAuthorizationFailed((callback) -> {
+            Platform.runLater(() -> {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Неверный логин или пароль");
+                alert.showAndWait();
+            });
+        });
     }
 
 
@@ -135,11 +157,10 @@ public class MainController implements Initializable {
             if (event.getClickCount() == 2) {
                 String item = clientFilesList.getSelectionModel().getSelectedItem();
                 if (item.equals("/..") && !currentDir.equals(rootDir)) {
-                    currentDir = currentDir.getParent();
+                    updateCurrentDir(currentDir = currentDir.getParent());
                     refreshLocalFilesList();
-                    //todo поднять папку на уровень выше
                 } else if (item.startsWith("[dir]")) {
-                    currentDir = Paths.get(currentDir + "/" + item.substring(6));
+                    updateCurrentDir(currentDir = Paths.get(currentDir + "/" + item.substring(6)));
                     refreshLocalFilesList();
                 } else {
                     fileField.clear();
@@ -151,23 +172,31 @@ public class MainController implements Initializable {
             String item = serverFilesList.getSelectionModel().getSelectedItem();
             if (event.getClickCount() == 2) {
                 if (item.equals("/..")) {
-                    protoFileSender.directoryUp(network.getCurrentChannel(), future -> {
-                        if (!future.isSuccess()) {
-                            future.cause().printStackTrace();
-                        }
-                        if (future.isSuccess()) {
-                            log.info("Send request to go to remote parent directory");
-                        }
-                    });
+                    sentService.sendMessage(
+                            network.getCurrentChannel(),
+                            Command.GO_TO_SERVER_PARENT_DIRECTORY,
+                            null,
+                            future -> {
+                                if (!future.isSuccess()) {
+                                    future.cause().printStackTrace();
+                                }
+                                if (future.isSuccess()) {
+                                    log.info("Send request to go to remote parent directory");
+                                }
+                            });
                 } else if (item.startsWith("[dir]")) {
-                    protoFileSender.goToDirectory(network.getCurrentChannel(), item.substring(6), future -> {
-                        if (!future.isSuccess()) {
-                            future.cause().printStackTrace();
-                        }
-                        if (future.isSuccess()) {
-                            log.info("Send request to go to remote directory: " + item);
-                        }
-                    });
+                    sentService.sendMessage(
+                           network.getCurrentChannel(),
+                            Command.GO_TO_SERVER_DIRECTORY,
+                            item.substring(6).getBytes(),
+                            future -> {
+                                if (!future.isSuccess()) {
+                                    future.cause().printStackTrace();
+                                }
+                                if (future.isSuccess()) {
+                                    log.info("Send request to go to remote directory: " + item);
+                                }
+                            });
                 } else {
                     fileField.clear();
                     fileField.appendText(item);
@@ -175,39 +204,60 @@ public class MainController implements Initializable {
             }
         });
     }
-    public void pressOnDownloadBtn(ActionEvent actionEvent) throws IOException {
-            try {
-                protoFileSender.downFile(Paths.get(currentDir +"/" + fileField.getText()),
-                        network.getCurrentChannel(), future -> {
+
+    public void pressOnDownloadBtn(ActionEvent actionEvent) {
+        sentService.sendFile(
+                Command.SEND_FILE_TO_SERVER,
+                currentDir,
+                fileField.getText(),
+                network.getCurrentChannel(),
+                future -> {
                     if (!future.isSuccess()) {
                         future.cause().printStackTrace();
                     }
                     if (future.isSuccess()) {
                         log.info("File was successfully transferred");
                     }
-                });
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+                }
+        );
     }
 
     public void pressOnUploadBtn(ActionEvent actionEvent) {
-
         String fileName = fileField.getText();
-
-        protoFileSender.uploadFile(fileName, network.getCurrentChannel(), future -> {
-            if (!future.isSuccess()) {
-                future.cause().printStackTrace();
-            }
-            if (future.isSuccess()) {
-                log.info("File " + fileName + " successfully requested");
-            }
-        });
+        sentService.sendMessage(
+                network.getCurrentChannel(),
+                Command.SEND_FILE_FROM_SERVER,
+                fileName.getBytes(),
+                future -> {
+                    if (!future.isSuccess()) {
+                        future.cause().printStackTrace();
+                    }
+                    if (future.isSuccess()) {
+                        log.info("File " + fileName + " successfully requested");
+                    }
+                }
+        );
     }
 
-    public void pressOnAutentificationBtn (ActionEvent actionEvent) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION,"Тут пока заглушка ***", ButtonType.CLOSE);
-        alert.showAndWait();
+    public void pressOnAuthorizationBtn(ActionEvent actionEvent) {
+
+        String loginAndPassword = loginField.getText() + " " + passwordField.getText();
+        log.error(loginAndPassword);
+        sentService.sendMessage(
+                network.getCurrentChannel(),
+                Command.AUTHORIZATION_REQUEST,
+                loginAndPassword.getBytes(),
+                future -> {
+                    if (!future.isSuccess()) {
+                        future.cause().printStackTrace();
+                    }
+                    if (future.isSuccess()) {
+                        log.info("Request to authorization has been sent to server");
+                    }
+                }
+        );
+        loginField.clear();
+        passwordField.clear();
     }
 
     public void pressOnCreateLocalBtn(ActionEvent actionEvent) {
@@ -248,9 +298,11 @@ public class MainController implements Initializable {
 
         Optional<String> result = dialog.showAndWait();
         if (result.isPresent()) {
-
-            protoFileSender.createDirectory(result.get(),
-                    network.getCurrentChannel(), future -> {
+            sentService.sendMessage(
+                    network.getCurrentChannel(),
+                    Command.CREATE_DIRECTORY_ON_SERVER,
+                    result.get().getBytes(),
+                    future -> {
                         if (!future.isSuccess()) {
                             future.cause().printStackTrace();
                         }
@@ -259,36 +311,44 @@ public class MainController implements Initializable {
                         }
                     });
             refreshLocalFilesList();
-
         }
     }
 
     public void pressOnDeleteRemoteBtn(ActionEvent actionEvent) {
-            String deletedName = serverFilesList.getSelectionModel().getSelectedItem();
-            if (deletedName.startsWith("[dir]")) deletedName = deletedName.substring(6);
+        String deletedName = serverFilesList.getSelectionModel().getSelectedItem();
+        if (deletedName.startsWith("[dir]")) deletedName = deletedName.substring(6);
 
-            protoFileSender.deleteFileOrDirectory(deletedName,
-                    network.getCurrentChannel(), future -> {
-                        if (!future.isSuccess()) {
-                            future.cause().printStackTrace();
-                        }
-                        if (future.isSuccess()) {
-                            log.info("Request to deleting file or directory has been sent to server");
-                        }
-                    });
+        sentService.sendMessage(
+                network.getCurrentChannel(),
+                Command.DELETE_FILE_OR_DIRECTORY_ON_SERVER,
+                deletedName.getBytes(),
+                future -> {
+                    if (!future.isSuccess()) {
+                        future.cause().printStackTrace();
+                    }
+                    if (future.isSuccess()) {
+                        log.info("Request to deleting file or directory has been sent to server");
+                    }
+                }
+        );
     }
 
 
+    private void refreshRemoteFilesList() {
+        sentService.sendMessage(
+                network.getCurrentChannel(),
+                Command.REFRESH_SERVER_FILE_AND_DIRECTORY_LIST,
+                null,
+                future -> {
+                    if (!future.isSuccess()) {
+                        future.cause().printStackTrace();
+                    }
+                    if (future.isSuccess()) {
+                        log.info("Request to get remote file list has been sent to server");
+                    }
+                }
 
-    private void refreshRemoteFilesList(){
-        protoFileSender.refreshRemoteFileList(network.getCurrentChannel(), future -> {
-            if (!future.isSuccess()) {
-                future.cause().printStackTrace();
-            }
-            if (future.isSuccess()) {
-                log.info("Request to get remote file list has been sent to server");
-            }
-        });
+        );
     }
 
     private void refreshLocalFilesList() {
@@ -315,5 +375,9 @@ public class MainController implements Initializable {
                 e.printStackTrace();
             }
         });
+    }
+
+    private void updateCurrentDir(Path currentDir){
+        Network.getInstance().setCurrentDir(currentDir);
     }
 }

@@ -4,8 +4,9 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.example.model.Commands;
-import org.example.server.SentService;
+import org.example.model.Command;
+import org.example.model.SentService;
+import org.example.server.Utils;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -17,36 +18,40 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
     private enum State {
         IDLE,
         READ_PACKAGE_SIZE,
-        READ_COMMAND,
         EXECUTE_COMMAND,
-        READ_FILE_NAME_LENGTH,
-        READ_FILE_NAME,
         READ_FILE_LENGTH,
         READ_FILE,
-        READ_SEND_FILE_NAME_LENGTH,
-        READ_SEND_FILE_NAME,
         GO_TO_PARENT_DIRECTORY,
-        READ_DIRECTORY_NAME_LENGTH,
-        READ_DIRECTORY_NAME,
-        READ_DIRECTORY_NAME_LENGTH_FOR_DELETING,
-        READ_DIRECTORY_NAME_FOR_DELETING,
-        READ_DIRECTORY_NAME_LENGTH_FOR_CREATING,
-        READ_DIRECTORY_NAME_FOR_CREATING
+        READ_STRING_LENGTH,
+        READ_STRING,
+        CREATE_FILE,
+        SEND_FILE,
+        GO_TO_DIRECTORY,
+        DELETE_DIRECTORY,
+        CREATE_DIRECTORY
     }
 
     private State currentState = State.IDLE;
-    private Commands command;
     private int nextLength;
     private long fileLength;
     private long redFileSize = 0L;
     private BufferedOutputStream out;
-    private final SentService sentService;
-    private Path rootDir = Paths.get("/home/sergei/IdeaProjects/Educational projects/Cloud-storage/server_storage/");
-    private Path currentDir = Paths.get("/");
+    private Path rootDir;
+    private Path currentDir;
     private static final Logger log = LogManager.getLogger(ProtocolInboundHandler.class);
+    private State nextState;
+    private String nextString;
+    private SentService sentService;
 
-    public ProtocolInboundHandler() {
-        currentDir = rootDir;
+
+    public ProtocolInboundHandler(String login, ChannelHandlerContext ctx) {
+        ctx.pipeline().removeFirst();
+
+        File rootDir = new File("/home/sergei/IdeaProjects/Educational projects/Cloud-storage/server_storage/" + login);
+        if (!rootDir.exists()) rootDir.mkdirs();
+
+        this.rootDir = rootDir.toPath();
+        currentDir = rootDir.toPath();
         sentService = new SentService();
     }
 
@@ -65,39 +70,36 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
                 long packageSize = buf.readLong();
                 log.info("State: " + currentState + " packageSize: " + packageSize);
 
-                changeState(State.READ_COMMAND);
+                nextState = State.EXECUTE_COMMAND;
+                changeState(State.READ_STRING_LENGTH);
             }
 
-            if (currentState.equals(State.READ_COMMAND) && buf.readableBytes() >= 4) {
-                byte[] commandTitle = new byte[buf.readInt()];
-                buf.readBytes(commandTitle);
-                command = Commands.valueOf(new String(commandTitle, StandardCharsets.UTF_8));
-                log.info("State: " + currentState + " command: " + command);
-
-                changeState(State.EXECUTE_COMMAND);
+            if (currentState.equals(State.READ_STRING_LENGTH) && buf.readableBytes() >= 4) {
+                readStringLength(buf);
+                changeState(State.READ_STRING);
             }
 
+            if (currentState.equals(State.READ_STRING) && buf.readableBytes() >= nextLength) {
+                nextString = readString(buf);
+                changeState(nextState);
+            }
 
             if (currentState.equals(State.EXECUTE_COMMAND)) {
 
-                switch (command) {
+                switch (Command.valueOf(nextString)) {
+
                     case SEND_FILE_TO_SERVER:
-                        changeState(State.READ_FILE_NAME_LENGTH);
+                        nextState = State.CREATE_FILE;
+                        changeState(State.READ_STRING_LENGTH);
                         break;
 
                     case SEND_FILE_FROM_SERVER:
-                        changeState(State.READ_SEND_FILE_NAME_LENGTH);
+                        nextState = State.SEND_FILE;
+                        changeState(State.READ_STRING_LENGTH);
                         break;
 
                     case REFRESH_SERVER_FILE_AND_DIRECTORY_LIST:
-                        sentService.sendFileList(currentDir, ctx, future -> {
-                            if (!future.isSuccess()) {
-                                future.cause().printStackTrace();
-                            }
-                            if (future.isSuccess()) {
-                                changeState(State.IDLE);
-                            }
-                        });
+                        sendServerFileList(ctx);
                         break;
 
                     case GO_TO_SERVER_PARENT_DIRECTORY:
@@ -105,100 +107,55 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
                         break;
 
                     case GO_TO_SERVER_DIRECTORY:
-                        changeState(State.READ_DIRECTORY_NAME_LENGTH);
+                        nextState = State.GO_TO_DIRECTORY;
+                        changeState(State.READ_STRING_LENGTH);
                         break;
 
                     case DELETE_FILE_OR_DIRECTORY_ON_SERVER:
-                        changeState(State.READ_DIRECTORY_NAME_LENGTH_FOR_DELETING);
+                        nextState = State.DELETE_DIRECTORY;
+                        changeState(State.READ_STRING_LENGTH);
                         break;
 
                     case CREATE_DIRECTORY_ON_SERVER:
-                        changeState(State.READ_DIRECTORY_NAME_LENGTH_FOR_CREATING);
+                        nextState = State.CREATE_DIRECTORY;
+                        changeState(State.READ_STRING_LENGTH);
                         break;
                 }
             }
 
-            if (currentState.equals(State.READ_DIRECTORY_NAME_LENGTH_FOR_CREATING) && buf.readableBytes() >= 4) {
-                nextLength = buf.readInt();
-                log.info("State: " + currentState + " directory name length: " + nextLength);
-
-                changeState(State.READ_DIRECTORY_NAME_LENGTH_FOR_CREATING);
-            }
-
-            if (currentState.equals(State.READ_DIRECTORY_NAME_LENGTH_FOR_CREATING) && buf.readableBytes() >= nextLength) {
-                byte[] fileName = new byte[nextLength];
-                buf.readBytes(fileName);
-                String dirName = new String(fileName, StandardCharsets.UTF_8);
-
-                File theDir = new File(currentDir + "/" + dirName);
+            if (currentState.equals(State.CREATE_DIRECTORY)) {
+                File theDir = new File(currentDir + "/" + nextString);
                 if (!theDir.exists()) theDir.mkdirs();
-
-                log.info("State: " + currentState + " directory name: " + dirName);
-
-                sentService.sendFileList(currentDir, ctx, future -> {
-                    if (!future.isSuccess()) {
-                        future.cause().printStackTrace();
-                    }
-                    if (future.isSuccess()) {
-                        changeState(State.IDLE);
-                    }
-                });
+                log.info("State: " + currentState + " directory name: " + nextString);
+                sendServerFileList(ctx);
             }
 
-            if (currentState.equals(State.READ_DIRECTORY_NAME_LENGTH_FOR_DELETING) && buf.readableBytes() >= 4) {
-                nextLength = buf.readInt();
-                log.info("State: " + currentState + " directory name length: " + nextLength);
-
-                changeState(State.READ_DIRECTORY_NAME_LENGTH_FOR_DELETING);
+            if (currentState.equals(State.DELETE_DIRECTORY)) {
+                Files.delete(Paths.get(currentDir + "/" + nextString));
+                log.info("State: " + currentState + " directory name: " + nextString);
+                sendServerFileList(ctx);
             }
 
-            if (currentState.equals(State.READ_DIRECTORY_NAME_LENGTH_FOR_DELETING) && buf.readableBytes() >= nextLength) {
-                byte[] fileName = new byte[nextLength];
-                buf.readBytes(fileName);
-                String dirName = new String(fileName, StandardCharsets.UTF_8);
-
-                Files.delete(Paths.get(currentDir + "/" + dirName));
-                log.info("State: " + currentState + " directory name: " + dirName);
-
-                sentService.sendFileList(currentDir, ctx, future -> {
-                    if (!future.isSuccess()) {
-                        future.cause().printStackTrace();
-                    }
-                    if (future.isSuccess()) {
-                        changeState(State.IDLE);
-                    }
-                });
-            }
-
-
-            if (currentState.equals(State.READ_DIRECTORY_NAME_LENGTH) && buf.readableBytes() >= 4) {
-                nextLength = buf.readInt();
-                log.info("State: " + currentState + " directory name length: " + nextLength);
-
-                changeState(State.READ_DIRECTORY_NAME);
-            }
-
-            if (currentState.equals(State.READ_DIRECTORY_NAME) && buf.readableBytes() >= nextLength) {
-                byte[] fileName = new byte[nextLength];
-                buf.readBytes(fileName);
-                String dirName = new String(fileName, StandardCharsets.UTF_8);
-                currentDir = Paths.get(currentDir.toString() + "/" + dirName);
-                log.info("State: " + currentState + " directory name: " + currentDir.toString());
-                sentService.sendFileList(currentDir, ctx, future -> {
-                    if (!future.isSuccess()) {
-                        future.cause().printStackTrace();
-                    }
-                    if (future.isSuccess()) {
-                        changeState(State.IDLE);
-                    }
-                });
+            if (currentState.equals(State.GO_TO_DIRECTORY)) {
+                currentDir = Paths.get(currentDir.toString() + "/" + nextString);
+                log.info("State: " + currentState + " directory name: " + currentDir);
+                sendServerFileList(ctx);
             }
 
             if (currentState.equals(State.GO_TO_PARENT_DIRECTORY)) {
-                //todo тут добавить проверку не поднимаемся ли выше родительсекой
-                currentDir = currentDir.getParent();
+                if (!rootDir.equals(currentDir)) currentDir = currentDir.getParent();
                 log.info("State: " + currentState + " directory name: " + currentDir.toString());
-                sentService.sendFileList(currentDir, ctx, future -> {
+                sendServerFileList(ctx);
+            }
+
+            if (currentState.equals(State.SEND_FILE)) {
+                log.info("State: " + currentState + " nextLength: " + nextLength);
+                sentService.sendFile(
+                        Command.SEND_FILE_FROM_SERVER,
+                        currentDir,
+                        nextString,
+                        ctx.channel(),
+                        future -> {
                     if (!future.isSuccess()) {
                         future.cause().printStackTrace();
                     }
@@ -208,61 +165,22 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
                 });
             }
 
-
-            if (currentState.equals(State.READ_SEND_FILE_NAME_LENGTH) && buf.readableBytes() >= 4) {
-                nextLength = buf.readInt();
-                log.info("State: " + currentState + " nextLength: " + nextLength);
-
-                changeState(State.READ_SEND_FILE_NAME);
-            }
-
-
-            if (currentState.equals(State.READ_SEND_FILE_NAME) && buf.readableBytes() >= nextLength) {
-                byte[] fileName = new byte[nextLength];
-                buf.readBytes(fileName);
-                String fileName1 = new String(fileName, StandardCharsets.UTF_8);
-                log.info("State: " + currentState + " nextLength: " + nextLength);
-                sentService.sendFile(currentDir, fileName1, ctx, future -> {
-                    if (!future.isSuccess()) {
-                        future.cause().printStackTrace();
-                    }
-                    if (future.isSuccess()) {
-                        changeState(State.IDLE);
-                    }
-                });
-            }
-
-
-            if (currentState.equals(State.READ_FILE_NAME_LENGTH) && buf.readableBytes() >= 4) {
-                nextLength = buf.readInt();
-                log.info("State: " + currentState + " nextLength: " + nextLength);
-
-                changeState(State.READ_FILE_NAME);
-            }
-
-            if (currentState.equals(State.READ_FILE_NAME) && buf.readableBytes() >= nextLength) {
-                byte[] fileName = new byte[nextLength];
-                buf.readBytes(fileName);
-                log.info("State: " + currentState + " Filename received: " + new String(fileName, StandardCharsets.UTF_8));
-
-                out = new BufferedOutputStream(Files.newOutputStream(Paths.get(currentDir + "/" + new String(fileName))));
-
+            if (currentState.equals(State.CREATE_FILE)) {
+                log.info("State: " + currentState + " Filename received: " + nextString);
+                out = new BufferedOutputStream(Files.newOutputStream(Paths.get(currentDir + "/" + nextString)));
                 changeState(State.READ_FILE_LENGTH);
             }
 
             if (currentState.equals(State.READ_FILE_LENGTH) && buf.readableBytes() >= 8) {
                 fileLength = buf.readLong();
                 log.info("State: " + currentState + " File length: " + fileLength);
-
                 changeState(State.READ_FILE);
             }
-
 
             if (currentState.equals(State.READ_FILE) && buf.readableBytes() > 0) {
                 out.write(buf.readByte());
                 redFileSize++;
             }
-
         }
 
 
@@ -270,14 +188,7 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
             log.info("State: " + currentState + " file received");
             out.close();
             redFileSize = 0L;
-            sentService.sendFileList(currentDir, ctx, future -> {
-                if (!future.isSuccess()) {
-                    future.cause().printStackTrace();
-                }
-                if (future.isSuccess()) {
-                    changeState(State.IDLE);
-                }
-            });
+            sendServerFileList(ctx);
         }
 
         if (buf.readableBytes() == 0) {
@@ -291,11 +202,38 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
         log.info("State: " + previousState + " ---> " + nextState);
     }
 
+    private void readStringLength(ByteBuf buf) {
+        nextLength = buf.readInt();
+        log.info("State: " + currentState + " String length: " + nextLength);
+    }
 
+
+    private String readString(ByteBuf buf) {
+        byte[] nameArr = new byte[nextLength];
+        buf.readBytes(nameArr);
+        String name = new String(nameArr, StandardCharsets.UTF_8);
+        log.info("State: " + currentState + " String: " + name);
+        return name;
+    }
+
+    private void sendServerFileList(ChannelHandlerContext ctx) {
+        sentService.sendMessage(
+                ctx.channel(),
+                Command.REFRESH_SERVER_FILE_AND_DIRECTORY_LIST,
+                Utils.getCurrentDirectoryContent(currentDir),
+                future -> {
+                    if (!future.isSuccess()) {
+                        future.cause().printStackTrace();
+                    }
+                    if (future.isSuccess()) {
+                        changeState(State.IDLE);
+                    }
+                });
+    }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-       cause.printStackTrace();
+        cause.printStackTrace();
         ctx.close();
     }
 }
