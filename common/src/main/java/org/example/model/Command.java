@@ -1,6 +1,6 @@
 package org.example.model;
 
-public enum Commands {
+public enum Command {
     SEND_FILE_FROM_SERVER,
     SEND_FILE_TO_SERVER,
     REFRESH_SERVER_FILE_AND_DIRECTORY_LIST,

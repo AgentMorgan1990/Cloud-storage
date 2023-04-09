@@ -5,7 +5,7 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.example.model.Commands;
+import org.example.model.Command;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -27,13 +27,13 @@ public class ProtoFileSender {
     public void refreshRemoteFileList(Channel channel, ChannelFutureListener finishListener) {
         executorService.execute(() -> {
             long packageSize = 0L;
-            byte[] commandName = Commands.REFRESH_SERVER_FILE_AND_DIRECTORY_LIST.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] commandName = Command.REFRESH_SERVER_FILE_AND_DIRECTORY_LIST.toString().getBytes(StandardCharsets.UTF_8);
 
             packageSize += 8;
             packageSize += 4;
             packageSize += commandName.length;
 
-            log.info("Send command: " + Commands.REFRESH_SERVER_FILE_AND_DIRECTORY_LIST + " . Package size: " + packageSize);
+            log.info("Send command: " + Command.REFRESH_SERVER_FILE_AND_DIRECTORY_LIST + " . Package size: " + packageSize);
 
             ByteBuf buf = null;
             buf = ByteBufAllocator.DEFAULT.directBuffer(1);
@@ -53,7 +53,7 @@ public class ProtoFileSender {
         executorService.execute(() -> {
 
             long packageSize = 0L;
-            byte[] commandName = Commands.SEND_FILE_FROM_SERVER.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] commandName = Command.SEND_FILE_FROM_SERVER.toString().getBytes(StandardCharsets.UTF_8);
             byte[] fileNameArr = fileName.getBytes();
 
             packageSize += 8;
@@ -62,7 +62,7 @@ public class ProtoFileSender {
             packageSize += 4;
             packageSize += fileNameArr.length;
 
-            log.info("Send command: " + Commands.SEND_FILE_FROM_SERVER + ". Package size: " + packageSize + ". File name: " + fileName);
+            log.info("Send command: " + Command.SEND_FILE_FROM_SERVER + ". Package size: " + packageSize + ". File name: " + fileName);
 
             ByteBuf buf = null;
             buf = ByteBufAllocator.DEFAULT.directBuffer(1);
@@ -91,7 +91,7 @@ public class ProtoFileSender {
             }
 
             FileRegion region = new DefaultFileRegion(path.toFile(), 0, fileSize);
-            byte[] commandName = Commands.SEND_FILE_TO_SERVER.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] commandName = Command.SEND_FILE_TO_SERVER.toString().getBytes(StandardCharsets.UTF_8);
             byte[] filenameBytes = path.getFileName().toString().getBytes(StandardCharsets.UTF_8);
 
             long packageSize = 0L;
@@ -104,7 +104,7 @@ public class ProtoFileSender {
             packageSize += 8;                       // long длина файла
             packageSize += fileSize;                // файл
 
-            log.info("Send command: " + Commands.SEND_FILE_TO_SERVER + ". Package size: " + packageSize + ". File size: " + fileSize);
+            log.info("Send command: " + Command.SEND_FILE_TO_SERVER + ". Package size: " + packageSize + ". File size: " + fileSize);
 
             ByteBuf buf = null;
             buf = ByteBufAllocator.DEFAULT.directBuffer(1);
@@ -127,13 +127,13 @@ public class ProtoFileSender {
     public void directoryUp(Channel channel, ChannelFutureListener finishListener) {
         executorService.execute(() -> {
             long packageSize = 0L;
-            byte[] commandName = Commands.GO_TO_SERVER_PARENT_DIRECTORY.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] commandName = Command.GO_TO_SERVER_PARENT_DIRECTORY.toString().getBytes(StandardCharsets.UTF_8);
 
             packageSize += 8;
             packageSize += 4;
             packageSize += commandName.length;
 
-            log.info("Send command: " + Commands.GO_TO_SERVER_PARENT_DIRECTORY + ". Package size: " + packageSize);
+            log.info("Send command: " + Command.GO_TO_SERVER_PARENT_DIRECTORY + ". Package size: " + packageSize);
 
             ByteBuf buf = null;
             buf = ByteBufAllocator.DEFAULT.directBuffer(1);
@@ -153,7 +153,7 @@ public class ProtoFileSender {
         executorService.execute(() -> {
 
             long packageSize = 0L;
-            byte[] commandName = Commands.GO_TO_SERVER_DIRECTORY.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] commandName = Command.GO_TO_SERVER_DIRECTORY.toString().getBytes(StandardCharsets.UTF_8);
             byte[] fileNameArr = substring.getBytes();
 
             packageSize += 8;
@@ -162,7 +162,7 @@ public class ProtoFileSender {
             packageSize += 4;
             packageSize += fileNameArr.length;
 
-            log.info("Send command: " + Commands.GO_TO_SERVER_DIRECTORY + ". Package size: " + packageSize);
+            log.info("Send command: " + Command.GO_TO_SERVER_DIRECTORY + ". Package size: " + packageSize);
 
             ByteBuf buf = null;
             buf = ByteBufAllocator.DEFAULT.directBuffer(1);
@@ -185,7 +185,7 @@ public class ProtoFileSender {
         executorService.execute(() -> {
 
             long packageSize = 0L;
-            byte[] commandName = Commands.DELETE_FILE_OR_DIRECTORY_ON_SERVER.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] commandName = Command.DELETE_FILE_OR_DIRECTORY_ON_SERVER.toString().getBytes(StandardCharsets.UTF_8);
             byte[] fileNameArr = deletedFileOrDirectoryName.getBytes();
 
             packageSize += 8;
@@ -194,7 +194,7 @@ public class ProtoFileSender {
             packageSize += 4;
             packageSize += fileNameArr.length;
 
-            log.info("Send command: " + Commands.DELETE_FILE_OR_DIRECTORY_ON_SERVER + ". Package size: " + packageSize + ". File or directory name: " + deletedFileOrDirectoryName);
+            log.info("Send command: " + Command.DELETE_FILE_OR_DIRECTORY_ON_SERVER + ". Package size: " + packageSize + ". File or directory name: " + deletedFileOrDirectoryName);
 
             ByteBuf buf = null;
             buf = ByteBufAllocator.DEFAULT.directBuffer(1);
@@ -217,7 +217,7 @@ public class ProtoFileSender {
         executorService.execute(() -> {
 
             long packageSize = 0L;
-            byte[] commandName = Commands.CREATE_DIRECTORY_ON_SERVER.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] commandName = Command.CREATE_DIRECTORY_ON_SERVER.toString().getBytes(StandardCharsets.UTF_8);
             byte[] fileNameArr = creatingDirectoryName.getBytes();
 
             packageSize += 8;
@@ -226,7 +226,7 @@ public class ProtoFileSender {
             packageSize += 4;
             packageSize += fileNameArr.length;
 
-            log.info("Send command: " + Commands.CREATE_DIRECTORY_ON_SERVER + ". Package size: " + packageSize + ". Directory name: " + creatingDirectoryName);
+            log.info("Send command: " + Command.CREATE_DIRECTORY_ON_SERVER + ". Package size: " + packageSize + ". Directory name: " + creatingDirectoryName);
 
             ByteBuf buf = null;
             buf = ByteBufAllocator.DEFAULT.directBuffer(1);
@@ -249,7 +249,7 @@ public class ProtoFileSender {
         executorService.execute(() -> {
 
             long packageSize = 0L;
-            byte[] commandName = Commands.AUTHORIZATION_REQUEST.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] commandName = Command.AUTHORIZATION_REQUEST.toString().getBytes(StandardCharsets.UTF_8);
             byte[] loginArr = login.getBytes();
             byte[] passwordArr = password.getBytes();
 
@@ -261,7 +261,7 @@ public class ProtoFileSender {
             packageSize += 4;
             packageSize += passwordArr.length;
 
-            log.info("Send command: " + Commands.AUTHORIZATION_REQUEST + ". Package size: " + packageSize + ". Login name: " + login);
+            log.info("Send command: " + Command.AUTHORIZATION_REQUEST + ". Package size: " + packageSize + ". Login name: " + login);
 
             ByteBuf buf = null;
             buf = ByteBufAllocator.DEFAULT.directBuffer(1);

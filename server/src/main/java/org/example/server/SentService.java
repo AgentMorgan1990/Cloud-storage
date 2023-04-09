@@ -5,7 +5,7 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.example.model.Commands;
+import org.example.model.Command;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -55,7 +55,7 @@ public class SentService {
                 e.printStackTrace();
             }
 
-            byte[] commandName = Commands.REFRESH_SERVER_FILE_AND_DIRECTORY_LIST.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] commandName = Command.REFRESH_SERVER_FILE_AND_DIRECTORY_LIST.toString().getBytes(StandardCharsets.UTF_8);
             byte[] fileList1 = new byte[0];
 
             try {
@@ -108,7 +108,7 @@ public class SentService {
             }
 
             FileRegion region = new DefaultFileRegion(path.toFile(), 0, fileSize);
-            byte[] commandName = Commands.SEND_FILE_FROM_SERVER.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] commandName = Command.SEND_FILE_FROM_SERVER.toString().getBytes(StandardCharsets.UTF_8);
             byte[] filenameBytes = path.getFileName().toString().getBytes(StandardCharsets.UTF_8);
 
             long packageSize = 0L;
@@ -140,7 +140,7 @@ public class SentService {
         });
     }
 
-    public void sendCommand(ChannelHandlerContext ctx, Commands command) {
+    public void sendCommand(ChannelHandlerContext ctx, Command command) {
         executorService.execute(() -> {
 
             byte[] commandName = command.toString().getBytes(StandardCharsets.UTF_8);
