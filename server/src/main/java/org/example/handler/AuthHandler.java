@@ -6,8 +6,9 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.example.model.Command;
+import org.example.model.SentService;
 import org.example.server.AuthorizationService;
-import org.example.server.SentService;
+
 
 import java.nio.charset.StandardCharsets;
 
@@ -18,16 +19,13 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
         READ_PACKAGE_SIZE,
         READ_COMMAND,
         EXECUTE_COMMAND,
-        READ_LOGIN_LENGTH,
-        READ_LOGIN,
-        READ_PASSWORD_LENGTH,
-        READ_PASSWORD
+        READ_LOGIN_AND_PASSWORD_LENGTH,
+        READ_LOGIN_AND_PASSWORD,
     }
 
     private State currentState = State.IDLE;
     private int nextLength;
     private Command command;
-    private String login;
     private AuthorizationService authorizationService = new AuthorizationService();
     private SentService sentService = new SentService();
 
@@ -64,51 +62,48 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
 
                 switch (command) {
                     case AUTHORIZATION_REQUEST:
-                        changeState(State.READ_LOGIN_LENGTH);
+                        changeState(State.READ_LOGIN_AND_PASSWORD_LENGTH);
                         break;
                 }
             }
 
-            if (currentState.equals(State.READ_LOGIN_LENGTH) && buf.readableBytes() >= 4) {
+            if (currentState.equals(State.READ_LOGIN_AND_PASSWORD_LENGTH) && buf.readableBytes() >= 4) {
                 nextLength = buf.readInt();
                 log.info("State: " + currentState + " login name length: " + nextLength);
 
-                changeState(State.READ_LOGIN);
+                changeState(State.READ_LOGIN_AND_PASSWORD);
             }
 
-            if (currentState.equals(State.READ_LOGIN) && buf.readableBytes() >= nextLength) {
+            if (currentState.equals(State.READ_LOGIN_AND_PASSWORD) && buf.readableBytes() >= nextLength) {
                 byte[] fileName = new byte[nextLength];
                 buf.readBytes(fileName);
-                login = new String(fileName, StandardCharsets.UTF_8);
+                String loginAndPassword = new String(fileName, StandardCharsets.UTF_8);
+                log.error(loginAndPassword);
+                String[] loginAndPasswordArr = loginAndPassword.split(" ");
 
-                log.info("State: " + currentState + " login: " + login);
+                log.error(loginAndPasswordArr[0]);
+                log.error(loginAndPasswordArr[1]);
 
-                changeState(State.READ_PASSWORD_LENGTH);
-            }
+                log.info("State: " + currentState + " login: " + loginAndPasswordArr[0]);
 
-            if (currentState.equals(State.READ_PASSWORD_LENGTH) && buf.readableBytes() >= 4) {
-                nextLength = buf.readInt();
-                log.info("State: " + currentState + " password length: " + nextLength);
-
-                changeState(State.READ_PASSWORD);
-            }
-
-            if (currentState.equals(State.READ_PASSWORD) && buf.readableBytes() >= nextLength) {
-                byte[] fileName = new byte[nextLength];
-                buf.readBytes(fileName);
-                String password = new String(fileName, StandardCharsets.UTF_8);
-
-                log.info("State: " + currentState + " password: " + password.length());
-
-                if (authorizationService.check(login, password)) {
-                    sentService.sendCommand(ctx, Command.AUTHORIZATION_OK);
-                    ctx.pipeline().addLast(new ProtocolInboundHandler(login, ctx));
+                if (authorizationService.check(loginAndPasswordArr[0], loginAndPasswordArr[1])) {
+                    sentService.sendMessage(
+                            ctx.channel(),
+                            Command.AUTHORIZATION_OK,
+                            null,
+                            null);
+                    ctx.pipeline().addLast(new ProtocolInboundHandler(loginAndPasswordArr[0], ctx));
                     log.info("State: " + currentState + " authorization pass");
                 } else {
-                    sentService.sendCommand(ctx, Command.AUTHORIZATION_FAILED);
+                    sentService.sendMessage(
+                            ctx.channel(),
+                            Command.AUTHORIZATION_FAILED,
+                            null,
+                            null);
                     log.info("State: " + currentState + " authorization failed");
                 }
                 changeState(State.IDLE);
+
             }
         }
 

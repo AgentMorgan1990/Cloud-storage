@@ -23,7 +23,6 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
         EXECUTE_COMMAND,
         READ_REMOTE_FILE_LIST_LENGTH,
         READ_REMOTE_FILE_LIST,
-        DESERIALIZE_REMOTE_FILE_LIST,
         READ_FILE_NAME_LENGTH,
         READ_FILE_NAME,
         READ_FILE_LENGTH,
@@ -34,7 +33,7 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
     private State currentState = State.IDLE;
     private Command command;
     private int nextLength;
-    private long fileListLength;
+    private int fileListLength;
     private long redFileLength = 0L;
     private long fileLength = 0L;
     private long redFileListLength = 0L;
@@ -115,9 +114,9 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
                 }
             }
 
-            if (currentState.equals(State.READ_REMOTE_FILE_LIST_LENGTH) && buf.readableBytes() >= 8) {
-                fileListLength = buf.readLong();
-                fileList = new byte[(int) fileListLength];
+            if (currentState.equals(State.READ_REMOTE_FILE_LIST_LENGTH) && buf.readableBytes() >= 4) {
+                fileListLength = buf.readInt();
+                fileList = new byte[fileListLength];
                 log.info("STATE: " + currentState + ". List length: " + fileListLength);
 
                 changeState(State.READ_REMOTE_FILE_LIST);

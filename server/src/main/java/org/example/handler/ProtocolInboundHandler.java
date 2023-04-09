@@ -5,7 +5,8 @@ import io.netty.channel.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.example.model.Command;
-import org.example.server.SentService;
+import org.example.model.SentService;
+import org.example.server.Utils;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -35,12 +36,12 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
     private long fileLength;
     private long redFileSize = 0L;
     private BufferedOutputStream out;
-    private final SentService sentService;
     private Path rootDir;
     private Path currentDir;
     private static final Logger log = LogManager.getLogger(ProtocolInboundHandler.class);
     private State nextState;
     private String nextString;
+    private SentService sentService;
 
 
     public ProtocolInboundHandler(String login, ChannelHandlerContext ctx) {
@@ -149,7 +150,12 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
 
             if (currentState.equals(State.SEND_FILE)) {
                 log.info("State: " + currentState + " nextLength: " + nextLength);
-                sentService.sendFile(currentDir, nextString, ctx, future -> {
+                sentService.sendFile(
+                        Command.SEND_FILE_FROM_SERVER,
+                        currentDir,
+                        nextString,
+                        ctx.channel(),
+                        future -> {
                     if (!future.isSuccess()) {
                         future.cause().printStackTrace();
                     }
@@ -211,14 +217,18 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
     }
 
     private void sendServerFileList(ChannelHandlerContext ctx) {
-        sentService.sendFileList(currentDir, ctx, future -> {
-            if (!future.isSuccess()) {
-                future.cause().printStackTrace();
-            }
-            if (future.isSuccess()) {
-                changeState(State.IDLE);
-            }
-        });
+        sentService.sendMessage(
+                ctx.channel(),
+                Command.REFRESH_SERVER_FILE_AND_DIRECTORY_LIST,
+                Utils.getCurrentDirectoryContent(currentDir),
+                future -> {
+                    if (!future.isSuccess()) {
+                        future.cause().printStackTrace();
+                    }
+                    if (future.isSuccess()) {
+                        changeState(State.IDLE);
+                    }
+                });
     }
 
     @Override
