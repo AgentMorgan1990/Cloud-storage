@@ -5,7 +5,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.example.model.Commands;
+import org.example.model.Command;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -32,7 +32,7 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
 
     private Path currentDir;
     private State currentState = State.IDLE;
-    private Commands command;
+    private Command command;
     private int nextLength;
     private long fileListLength;
     private long redFileLength = 0L;
@@ -86,7 +86,7 @@ public class ProtocolInboundHandler extends ChannelInboundHandlerAdapter {
             if (currentState.equals(State.READ_COMMAND) && buf.readableBytes() >= 4) {
                 byte[] commandTitle = new byte[buf.readInt()];
                 buf.readBytes(commandTitle);
-                command = Commands.valueOf(new String(commandTitle, StandardCharsets.UTF_8));
+                command = Command.valueOf(new String(commandTitle, StandardCharsets.UTF_8));
                 log.info("State: " + State.READ_COMMAND + " command: " + command);
 
                 changeState(State.EXECUTE_COMMAND);

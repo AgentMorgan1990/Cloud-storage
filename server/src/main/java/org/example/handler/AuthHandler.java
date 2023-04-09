@@ -5,7 +5,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.example.model.Commands;
+import org.example.model.Command;
 import org.example.server.AuthorizationService;
 import org.example.server.SentService;
 
@@ -26,7 +26,7 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
 
     private State currentState = State.IDLE;
     private int nextLength;
-    private Commands command;
+    private Command command;
     private String login;
     private AuthorizationService authorizationService = new AuthorizationService();
     private SentService sentService = new SentService();
@@ -53,7 +53,7 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
             if (currentState.equals(State.READ_COMMAND) && buf.readableBytes() >= 4) {
                 byte[] commandTitle = new byte[buf.readInt()];
                 buf.readBytes(commandTitle);
-                command = Commands.valueOf(new String(commandTitle, StandardCharsets.UTF_8));
+                command = Command.valueOf(new String(commandTitle, StandardCharsets.UTF_8));
                 log.info("State: " + currentState + " command: " + command);
 
                 changeState(State.EXECUTE_COMMAND);
@@ -101,11 +101,11 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
                 log.info("State: " + currentState + " password: " + password.length());
 
                 if (authorizationService.check(login, password)) {
-                    sentService.sendCommand(ctx, Commands.AUTHORIZATION_OK);
+                    sentService.sendCommand(ctx, Command.AUTHORIZATION_OK);
                     ctx.pipeline().addLast(new ProtocolInboundHandler(login, ctx));
                     log.info("State: " + currentState + " authorization pass");
                 } else {
-                    sentService.sendCommand(ctx, Commands.AUTHORIZATION_FAILED);
+                    sentService.sendCommand(ctx, Command.AUTHORIZATION_FAILED);
                     log.info("State: " + currentState + " authorization failed");
                 }
                 changeState(State.IDLE);
